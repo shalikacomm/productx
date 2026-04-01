@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>X-Product | Attendant Dashboard</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<!-- Mobile Topbar -->
+<div class="topbar">
+    <button class="hamburger" onclick="toggleSidebar()" aria-label="Menu">
+        <span></span><span></span><span></span>
+    </button>
+    <span class="brand-title">X-Product</span>
+    <span class="topbar-user" id="topbarUser"></span>
+</div>
+
+<!-- Sidebar Backdrop -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<div class="dashboard">
+    <aside class="sidebar" id="sidebar">
+        <div class="brand">
+            <h2>X-Product</h2>
+            <p id="branchLabel">Attendant Panel</p>
+        </div>
+        <nav>
+            <a class="active"><span class="icon">&#9783;</span> Dashboard</a>
+        </nav>
+        <div class="user-info">
+            <div class="name" id="sidebarName">-</div>
+            <div class="role">Attendant</div>
+        </div>
+        <div class="logout-btn" onclick="logout()">&#8594; Logout</div>
+    </aside>
+
+    <main class="main">
+        <div class="page-header">
+            <h2>Attendant Dashboard</h2>
+        </div>
+        <div class="card" style="padding: 40px; text-align: center; color: #888;">
+            <p style="font-size:18px;">Welcome, <strong id="welcomeName"></strong></p>
+            <p style="margin-top:10px;">More modules coming soon.</p>
+        </div>
+    </main>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+    const currentUser = getUser();
+    if (!currentUser || currentUser.role !== 'ATTENDANT') {
+        window.location.href = '/login.html';
+    }
+    document.getElementById('sidebarName').textContent = currentUser.fullName;
+    document.getElementById('topbarUser').textContent  = currentUser.fullName;
+    document.getElementById('welcomeName').textContent = currentUser.fullName;
+    document.getElementById('branchLabel').textContent = currentUser.branchName || 'Attendant Panel';
+
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('sidebarOverlay').classList.toggle('active');
+    }
+    function closeSidebar() {
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('sidebarOverlay').classList.remove('active');
+    }
+</script>
+</body>
+</html>

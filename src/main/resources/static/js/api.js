@@ -75,6 +75,46 @@ async function getBranches() {
     return apiFetch('/branches');
 }
 
+// Fuel Types
+async function getFuelTypes() {
+    return apiFetch('/fuel-types');
+}
+
+// GRN
+async function createGrn(payload) {
+    return apiFetch('/grn', { method: 'POST', body: JSON.stringify(payload) });
+}
+
+async function getAllGrns() {
+    return apiFetch('/grn');
+}
+
+async function getGrnsByBranch(branchId) {
+    return apiFetch('/grn/branch/' + branchId);
+}
+
+// Stock
+async function getAllStock() {
+    return apiFetch('/stock');
+}
+
+async function getStockByBranch(branchId) {
+    return apiFetch('/stock/branch/' + branchId);
+}
+
+// Daily Sales
+async function recordDailySale(payload) {
+    return apiFetch('/sales', { method: 'POST', body: JSON.stringify(payload) });
+}
+
+async function getAllSales() {
+    return apiFetch('/sales');
+}
+
+async function getSalesByBranch(branchId) {
+    return apiFetch('/sales/branch/' + branchId);
+}
+
 // ---- Form Validation Helpers ----
 
 function setFieldError(inputId, message) {

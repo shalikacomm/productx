@@ -8,7 +8,6 @@
 </head>
 <body>
 
-<!-- Mobile Topbar -->
 <div class="topbar">
     <button class="hamburger" onclick="toggleSidebar()" aria-label="Menu">
         <span></span><span></span><span></span>
@@ -17,7 +16,6 @@
     <span class="topbar-user" id="topbarUser"></span>
 </div>
 
-<!-- Sidebar Backdrop -->
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
 
 <div class="dashboard">
@@ -27,7 +25,15 @@
             <p id="branchLabel">Clerk Panel</p>
         </div>
         <nav>
-            <a class="active"><span class="icon">&#9783;</span> Dashboard</a>
+            <a class="active" onclick="showSection('overview', this)">
+                <span class="icon">&#9783;</span> Overview
+            </a>
+            <a onclick="showSection('stock', this)">
+                <span class="icon">&#128202;</span> Stock
+            </a>
+            <a onclick="showSection('grn', this)">
+                <span class="icon">&#128230;</span> GRN
+            </a>
         </nav>
         <div class="user-info">
             <div class="name" id="sidebarName">-</div>
@@ -37,26 +43,271 @@
     </aside>
 
     <main class="main">
-        <div class="page-header">
-            <h2>Clerk Dashboard</h2>
+
+        <!-- Overview -->
+        <div class="section-page active" id="section-overview">
+            <div class="page-header"><h2>Overview</h2></div>
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="icon icon-blue">&#128230;</div>
+                    <div class="info">
+                        <div class="value" id="stat-grns">0</div>
+                        <div class="label">Total GRNs</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon icon-red">&#127970;</div>
+                    <div class="info">
+                        <div class="value" id="stat-branches">0</div>
+                        <div class="label">Branches</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3>All Branches — Stock</h3></div>
+                <div class="card-body">
+                    <table>
+                        <thead><tr><th>Branch</th><th>Fuel Type</th><th>Stock (Litres)</th><th>Last Updated</th></tr></thead>
+                        <tbody id="overviewStockBody">
+                            <tr><td colspan="4" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-        <div class="card" style="padding: 40px; text-align: center; color: #888;">
-            <p style="font-size:18px;">Welcome, <strong id="welcomeName"></strong></p>
-            <p style="margin-top:10px;">More modules coming soon.</p>
+
+        <!-- Stock -->
+        <div class="section-page" id="section-stock">
+            <div class="page-header">
+                <h2>Stock Levels</h2>
+                <select id="stockBranchFilter" onchange="filterStock()" style="padding:8px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:13px">
+                    <option value="">All Branches</option>
+                </select>
+            </div>
+            <div class="card">
+                <div class="card-body">
+                    <table>
+                        <thead><tr><th>Branch</th><th>Fuel Type</th><th>Stock (Litres)</th><th>Last Updated</th></tr></thead>
+                        <tbody id="stockBody">
+                            <tr><td colspan="4" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
+
+        <!-- GRN -->
+        <div class="section-page" id="section-grn">
+            <div class="page-header">
+                <h2>GRN Records</h2>
+                <button class="btn btn-primary" onclick="openGrnModal()">+ Add GRN</button>
+            </div>
+            <div class="card">
+                <div class="card-body">
+                    <table>
+                        <thead>
+                            <tr><th>GRN No.</th><th>Branch</th><th>Fuel Type</th><th>Qty (L)</th><th>Price/L</th><th>Total (LKR)</th><th>Supplier</th><th>Date</th></tr>
+                        </thead>
+                        <tbody id="grnBody">
+                            <tr><td colspan="8" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
     </main>
+</div>
+
+<!-- GRN Modal -->
+<div class="modal-overlay" id="grnModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Add GRN</h3>
+            <button class="modal-close" onclick="closeGrnModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="alert alert-error" id="grnError"></div>
+            <div class="alert alert-success" id="grnSuccess"></div>
+            <form id="grnForm" onsubmit="return false">
+                <div class="form-group">
+                    <label>Branch *</label>
+                    <select id="grn-branch">
+                        <option value="">Select Branch</option>
+                    </select>
+                    <span class="field-error" id="grn-branch-error"></span>
+                </div>
+                <div class="form-group">
+                    <label>Fuel Type *</label>
+                    <select id="grn-fuelType">
+                        <option value="">Select Fuel Type</option>
+                    </select>
+                    <span class="field-error" id="grn-fuelType-error"></span>
+                </div>
+                <div class="form-group">
+                    <label>Quantity (Litres) *</label>
+                    <input type="number" id="grn-qty" step="0.01" min="0.01" placeholder="e.g. 5000">
+                    <span class="field-error" id="grn-qty-error"></span>
+                </div>
+                <div class="form-group">
+                    <label>Price Per Litre (LKR) *</label>
+                    <input type="number" id="grn-price" step="0.01" min="0.01" placeholder="e.g. 320.50">
+                    <span class="field-error" id="grn-price-error"></span>
+                </div>
+                <div class="form-group">
+                    <label>Received Date *</label>
+                    <input type="date" id="grn-date">
+                    <span class="field-error" id="grn-date-error"></span>
+                </div>
+                <div class="form-group">
+                    <label>Supplier</label>
+                    <input type="text" id="grn-supplier" placeholder="e.g. Ceylon Petroleum">
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <input type="text" id="grn-notes" placeholder="Optional">
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeGrnModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitGrn()">Save GRN</button>
+        </div>
+    </div>
 </div>
 
 <script src="/js/api.js"></script>
 <script>
     const currentUser = getUser();
-    if (!currentUser || currentUser.role !== 'CLERK') {
-        window.location.href = '/login.html';
-    }
+    if (!currentUser || currentUser.role !== 'CLERK') window.location.href = '/login.html';
     document.getElementById('sidebarName').textContent = currentUser.fullName;
     document.getElementById('topbarUser').textContent  = currentUser.fullName;
-    document.getElementById('welcomeName').textContent = currentUser.fullName;
     document.getElementById('branchLabel').textContent = currentUser.branchName || 'Clerk Panel';
+
+    let branches = [], fuelTypes = [], allStock = [], allGrns = [];
+
+    async function init() {
+        try {
+            [branches, fuelTypes, allStock, allGrns] = await Promise.all([
+                getBranches(), getFuelTypes(), getAllStock(), getAllGrns()
+            ]);
+            document.getElementById('stat-grns').textContent     = allGrns.length;
+            document.getElementById('stat-branches').textContent = branches.length;
+            renderStockTable(allStock, 'overviewStockBody', 4);
+            renderStockTable(allStock, 'stockBody', 4);
+            renderGrnTable();
+            populateBranchFilter();
+            populateModalSelects();
+            document.getElementById('grn-date').value = new Date().toISOString().split('T')[0];
+        } catch(e) { console.error(e); }
+    }
+
+    function stockRowFull(s) {
+        const low = 500;
+        return `<tr>
+            <td>${s.branchName}</td>
+            <td>${s.fuelTypeName}</td>
+            <td style="font-weight:600;color:${s.quantityLiters <= low ? '#dc3545' : '#27ae60'}">${Number(s.quantityLiters).toFixed(2)} L</td>
+            <td>${s.lastUpdated ? new Date(s.lastUpdated).toLocaleString() : '-'}</td>
+        </tr>`;
+    }
+
+    function renderStockTable(data, tbodyId, cols) {
+        document.getElementById(tbodyId).innerHTML = data.length === 0
+            ? `<tr><td colspan="${cols}" style="text-align:center;padding:20px;color:#999">No stock data</td></tr>`
+            : data.map(stockRowFull).join('');
+    }
+
+    function renderGrnTable() {
+        document.getElementById('grnBody').innerHTML = allGrns.length === 0
+            ? '<tr><td colspan="8" style="text-align:center;padding:20px;color:#999">No GRN records</td></tr>'
+            : allGrns.map(g => `<tr>
+                <td><strong>${g.grnNumber}</strong></td>
+                <td>${g.branchName}</td>
+                <td>${g.fuelTypeName}</td>
+                <td>${Number(g.quantityLiters).toFixed(2)}</td>
+                <td>${Number(g.pricePerLiter).toFixed(2)}</td>
+                <td>LKR ${Number(g.totalAmount).toLocaleString()}</td>
+                <td>${g.supplier || '-'}</td>
+                <td>${g.receivedDate}</td>
+            </tr>`).join('');
+    }
+
+    function populateBranchFilter() {
+        document.getElementById('stockBranchFilter').innerHTML =
+            '<option value="">All Branches</option>' +
+            branches.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+    }
+
+    function populateModalSelects() {
+        document.getElementById('grn-branch').innerHTML =
+            '<option value="">Select Branch</option>' +
+            branches.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+        document.getElementById('grn-fuelType').innerHTML =
+            '<option value="">Select Fuel Type</option>' +
+            fuelTypes.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+    }
+
+    async function filterStock() {
+        const branchId = document.getElementById('stockBranchFilter').value;
+        const data = branchId ? await getStockByBranch(branchId) : allStock;
+        renderStockTable(data, 'stockBody', 4);
+    }
+
+    function showSection(name, el) {
+        document.querySelectorAll('.section-page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active'));
+        document.getElementById('section-' + name).classList.add('active');
+        if (el) el.classList.add('active');
+        closeSidebar();
+    }
+
+    function openGrnModal() {
+        document.getElementById('grnModal').classList.add('active');
+        document.getElementById('grnForm').reset();
+        document.getElementById('grnError').classList.remove('show');
+        document.getElementById('grnSuccess').classList.remove('show');
+        clearAllFields(['grn-branch','grn-fuelType','grn-qty','grn-price','grn-date']);
+        document.getElementById('grn-date').value = new Date().toISOString().split('T')[0];
+    }
+    function closeGrnModal() { document.getElementById('grnModal').classList.remove('active'); }
+
+    async function submitGrn() {
+        const errEl = document.getElementById('grnError');
+        const sucEl = document.getElementById('grnSuccess');
+        errEl.classList.remove('show'); sucEl.classList.remove('show');
+
+        let valid = true;
+        if (!document.getElementById('grn-branch').value)   { setFieldError('grn-branch','Select a branch.'); valid=false; }    else setFieldValid('grn-branch');
+        if (!document.getElementById('grn-fuelType').value) { setFieldError('grn-fuelType','Select a fuel type.'); valid=false; } else setFieldValid('grn-fuelType');
+        if (!document.getElementById('grn-qty').value || parseFloat(document.getElementById('grn-qty').value) <= 0) { setFieldError('grn-qty','Enter a valid quantity.'); valid=false; } else setFieldValid('grn-qty');
+        if (!document.getElementById('grn-price').value || parseFloat(document.getElementById('grn-price').value) <= 0) { setFieldError('grn-price','Enter a valid price.'); valid=false; } else setFieldValid('grn-price');
+        if (!document.getElementById('grn-date').value)     { setFieldError('grn-date','Select a date.'); valid=false; }         else setFieldValid('grn-date');
+        if (!valid) return;
+
+        const payload = {
+            branchId:       parseInt(document.getElementById('grn-branch').value),
+            fuelTypeId:     parseInt(document.getElementById('grn-fuelType').value),
+            quantityLiters: parseFloat(document.getElementById('grn-qty').value),
+            pricePerLiter:  parseFloat(document.getElementById('grn-price').value),
+            receivedDate:   document.getElementById('grn-date').value,
+            supplier:       document.getElementById('grn-supplier').value.trim() || null,
+            notes:          document.getElementById('grn-notes').value.trim() || null,
+        };
+
+        try {
+            await createGrn(payload);
+            sucEl.textContent = 'GRN saved successfully!';
+            sucEl.classList.add('show');
+            document.getElementById('grnForm').reset();
+            document.getElementById('grn-date').value = new Date().toISOString().split('T')[0];
+            [allGrns, allStock] = await Promise.all([getAllGrns(), getAllStock()]);
+            document.getElementById('stat-grns').textContent = allGrns.length;
+            renderGrnTable();
+            renderStockTable(allStock, 'overviewStockBody', 4);
+            renderStockTable(allStock, 'stockBody', 4);
+        } catch(err) { errEl.textContent = err.message; errEl.classList.add('show'); }
+    }
 
     function toggleSidebar() {
         document.getElementById('sidebar').classList.toggle('open');
@@ -66,6 +317,8 @@
         document.getElementById('sidebar').classList.remove('open');
         document.getElementById('sidebarOverlay').classList.remove('active');
     }
+
+    init();
 </script>
 </body>
 </html>

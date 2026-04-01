@@ -31,6 +31,15 @@
             <a class="active" onclick="showSection('overview', this)">
                 <span class="icon">&#9783;</span> Overview
             </a>
+            <a onclick="showSection('stock', this)">
+                <span class="icon">&#128202;</span> Stock
+            </a>
+            <a onclick="showSection('grn', this)">
+                <span class="icon">&#128230;</span> GRN Records
+            </a>
+            <a onclick="showSection('sales', this)">
+                <span class="icon">&#128200;</span> Daily Sales
+            </a>
             <a onclick="showSection('users', this)">
                 <span class="icon">&#128100;</span> Users
             </a>
@@ -109,6 +118,63 @@
                             </tr>
                         </thead>
                         <tbody id="allUsersTableBody">
+                            <tr><td colspan="7" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stock Section -->
+        <div class="section-page" id="section-stock">
+            <div class="page-header"><h2>Stock Levels</h2></div>
+            <div class="card">
+                <div class="card-header">
+                    <h3>All Branches — Current Stock</h3>
+                    <select id="stockBranchFilter" onchange="filterStock()" style="padding:8px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:13px">
+                        <option value="">All Branches</option>
+                    </select>
+                </div>
+                <div class="card-body">
+                    <table>
+                        <thead>
+                            <tr><th>Branch</th><th>Fuel Type</th><th>Stock (Litres)</th><th>Last Updated</th></tr>
+                        </thead>
+                        <tbody id="stockTableBody">
+                            <tr><td colspan="4" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- GRN Section -->
+        <div class="section-page" id="section-grn">
+            <div class="page-header"><h2>GRN Records</h2></div>
+            <div class="card">
+                <div class="card-body">
+                    <table>
+                        <thead>
+                            <tr><th>GRN No.</th><th>Branch</th><th>Fuel Type</th><th>Qty (L)</th><th>Price/L</th><th>Total</th><th>Supplier</th><th>Date</th><th>Created By</th></tr>
+                        </thead>
+                        <tbody id="grnTableBody">
+                            <tr><td colspan="9" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Daily Sales Section -->
+        <div class="section-page" id="section-sales">
+            <div class="page-header"><h2>Daily Sales</h2></div>
+            <div class="card">
+                <div class="card-body">
+                    <table>
+                        <thead>
+                            <tr><th>Date</th><th>Branch</th><th>Fuel Type</th><th>Litres Sold</th><th>Price/L</th><th>Total (LKR)</th><th>Recorded By</th></tr>
+                        </thead>
+                        <tbody id="salesTableBody">
                             <tr><td colspan="7" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
                         </tbody>
                     </table>
@@ -280,13 +346,15 @@
 
     let allUsers = [];
     let branches = [];
+    let allStock  = [];
 
     async function init() {
         try {
-            [allUsers, branches] = await Promise.all([getAllUsers(), getBranches()]);
+            [allUsers, branches, allStock] = await Promise.all([getAllUsers(), getBranches(), getAllStock()]);
             renderStats();
             renderAllUsersTable();
             populateBranchSelect();
+            populateStockBranchFilter();
         } catch (e) { console.error(e); }
     }
 
@@ -329,7 +397,82 @@
         if (name === 'managers')   renderRoleTable('managersTableBody',   'MANAGER',   5);
         if (name === 'clerks')     renderRoleTable('clerksTableBody',     'CLERK',     5);
         if (name === 'attendants') renderRoleTable('attendantsTableBody', 'ATTENDANT', 5);
+        if (name === 'stock')      renderStockTable();
+        if (name === 'grn')        loadGrns();
+        if (name === 'sales')      loadSales();
         closeSidebar();
+    }
+
+    // ---- Stock ----
+    function populateStockBranchFilter() {
+        const sel = document.getElementById('stockBranchFilter');
+        sel.innerHTML = '<option value="">All Branches</option>' +
+            branches.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+    }
+
+    function renderStockTable(filtered = allStock) {
+        const low = 500; // low stock threshold in litres
+        document.getElementById('stockTableBody').innerHTML = filtered.length === 0
+            ? '<tr><td colspan="4" style="text-align:center;padding:20px;color:#999">No stock data</td></tr>'
+            : filtered.map(s => `
+                <tr>
+                    <td>${s.branchName}</td>
+                    <td>${s.fuelTypeName}</td>
+                    <td style="font-weight:600;color:${s.quantityLiters <= low ? '#dc3545' : '#27ae60'}">${Number(s.quantityLiters).toFixed(2)} L</td>
+                    <td>${s.lastUpdated ? new Date(s.lastUpdated).toLocaleString() : '-'}</td>
+                </tr>`).join('');
+    }
+
+    async function filterStock() {
+        const branchId = document.getElementById('stockBranchFilter').value;
+        if (!branchId) {
+            renderStockTable(allStock);
+        } else {
+            const data = await getStockByBranch(branchId);
+            renderStockTable(data);
+        }
+    }
+
+    // ---- GRN ----
+    async function loadGrns() {
+        document.getElementById('grnTableBody').innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>';
+        try {
+            const grns = await getAllGrns();
+            document.getElementById('grnTableBody').innerHTML = grns.length === 0
+                ? '<tr><td colspan="9" style="text-align:center;padding:20px;color:#999">No GRN records</td></tr>'
+                : grns.map(g => `
+                    <tr>
+                        <td><strong>${g.grnNumber}</strong></td>
+                        <td>${g.branchName}</td>
+                        <td>${g.fuelTypeName}</td>
+                        <td>${Number(g.quantityLiters).toFixed(2)}</td>
+                        <td>${Number(g.pricePerLiter).toFixed(2)}</td>
+                        <td>LKR ${Number(g.totalAmount).toLocaleString()}</td>
+                        <td>${g.supplier || '-'}</td>
+                        <td>${g.receivedDate}</td>
+                        <td>${g.createdByUsername}</td>
+                    </tr>`).join('');
+        } catch(e) { console.error(e); }
+    }
+
+    // ---- Daily Sales ----
+    async function loadSales() {
+        document.getElementById('salesTableBody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>';
+        try {
+            const sales = await getAllSales();
+            document.getElementById('salesTableBody').innerHTML = sales.length === 0
+                ? '<tr><td colspan="7" style="text-align:center;padding:20px;color:#999">No sales records</td></tr>'
+                : sales.map(s => `
+                    <tr>
+                        <td>${s.saleDate}</td>
+                        <td>${s.branchName}</td>
+                        <td>${s.fuelTypeName}</td>
+                        <td>${Number(s.litersSold).toFixed(2)} L</td>
+                        <td>${Number(s.pricePerLiter).toFixed(2)}</td>
+                        <td>LKR ${Number(s.totalAmount).toLocaleString()}</td>
+                        <td>${s.recordedByUsername}</td>
+                    </tr>`).join('');
+        } catch(e) { console.error(e); }
     }
 
     function renderRoleTable(tbodyId, role, cols) {

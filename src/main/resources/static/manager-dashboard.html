@@ -8,7 +8,6 @@
 </head>
 <body>
 
-<!-- Mobile Topbar -->
 <div class="topbar">
     <button class="hamburger" onclick="toggleSidebar()" aria-label="Menu">
         <span></span><span></span><span></span>
@@ -17,7 +16,6 @@
     <span class="topbar-user" id="topbarUser"></span>
 </div>
 
-<!-- Sidebar Backdrop (mobile) -->
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
 
 <div class="dashboard">
@@ -29,6 +27,15 @@
         <nav>
             <a class="active" onclick="showSection('overview', this)">
                 <span class="icon">&#9783;</span> Overview
+            </a>
+            <a onclick="showSection('stock', this)">
+                <span class="icon">&#128202;</span> Stock
+            </a>
+            <a onclick="showSection('grn', this)">
+                <span class="icon">&#128230;</span> GRN
+            </a>
+            <a onclick="showSection('sales', this)">
+                <span class="icon">&#128200;</span> Daily Sales
             </a>
             <a onclick="showSection('attendants', this)">
                 <span class="icon">&#128110;</span> Attendants
@@ -45,30 +52,92 @@
 
         <!-- Overview -->
         <div class="section-page active" id="section-overview">
-            <div class="page-header">
-                <h2>Overview</h2>
-                <button class="btn btn-primary" onclick="openCreateModal()">+ Add Attendant</button>
-            </div>
+            <div class="page-header"><h2>Overview</h2></div>
             <div class="stats-row">
                 <div class="stat-card">
                     <div class="icon icon-orange">&#128110;</div>
                     <div class="info">
                         <div class="value" id="stat-attendants">0</div>
-                        <div class="label">My Attendants</div>
+                        <div class="label">Attendants</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon icon-blue">&#128230;</div>
+                    <div class="info">
+                        <div class="value" id="stat-grns">0</div>
+                        <div class="label">GRN Records</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon icon-green">&#128200;</div>
+                    <div class="info">
+                        <div class="value" id="stat-sales">0</div>
+                        <div class="label">Sales Records</div>
                     </div>
                 </div>
             </div>
+            <!-- Quick stock view -->
             <div class="card">
-                <div class="card-header">
-                    <h3>Attendants</h3>
-                    <button class="btn btn-primary" onclick="openCreateModal()">+ Add Attendant</button>
+                <div class="card-header"><h3>Branch Stock</h3></div>
+                <div class="card-body">
+                    <table>
+                        <thead><tr><th>Fuel Type</th><th>Stock (Litres)</th><th>Last Updated</th></tr></thead>
+                        <tbody id="overviewStockBody">
+                            <tr><td colspan="3" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
+            </div>
+        </div>
+
+        <!-- Stock -->
+        <div class="section-page" id="section-stock">
+            <div class="page-header"><h2>Branch Stock</h2></div>
+            <div class="card">
+                <div class="card-body">
+                    <table>
+                        <thead><tr><th>Fuel Type</th><th>Stock (Litres)</th><th>Last Updated</th></tr></thead>
+                        <tbody id="stockBody">
+                            <tr><td colspan="3" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- GRN -->
+        <div class="section-page" id="section-grn">
+            <div class="page-header">
+                <h2>GRN Records</h2>
+                <button class="btn btn-primary" onclick="openGrnModal()">+ Add GRN</button>
+            </div>
+            <div class="card">
                 <div class="card-body">
                     <table>
                         <thead>
-                            <tr><th>#</th><th>Full Name</th><th>Username</th><th>Phone</th><th>Actions</th></tr>
+                            <tr><th>GRN No.</th><th>Fuel Type</th><th>Qty (L)</th><th>Price/L</th><th>Total (LKR)</th><th>Supplier</th><th>Date</th></tr>
                         </thead>
-                        <tbody id="overviewAttendantsBody">
+                        <tbody id="grnBody">
+                            <tr><td colspan="7" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Daily Sales -->
+        <div class="section-page" id="section-sales">
+            <div class="page-header">
+                <h2>Daily Sales</h2>
+                <button class="btn btn-primary" onclick="openSaleModal()">+ Record Sale</button>
+            </div>
+            <div class="card">
+                <div class="card-body">
+                    <table>
+                        <thead>
+                            <tr><th>Date</th><th>Fuel Type</th><th>Litres Sold</th><th>Price/L</th><th>Total (LKR)</th></tr>
+                        </thead>
+                        <tbody id="salesBody">
                             <tr><td colspan="5" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
                         </tbody>
                     </table>
@@ -76,18 +145,16 @@
             </div>
         </div>
 
-        <!-- Attendants Section -->
+        <!-- Attendants -->
         <div class="section-page" id="section-attendants">
             <div class="page-header">
                 <h2>Attendants</h2>
-                <button class="btn btn-primary" onclick="openCreateModal()">+ Add Attendant</button>
+                <button class="btn btn-primary" onclick="openAttendantModal()">+ Add Attendant</button>
             </div>
             <div class="card">
                 <div class="card-body">
                     <table>
-                        <thead>
-                            <tr><th>#</th><th>Full Name</th><th>Username</th><th>Phone</th><th>Actions</th></tr>
-                        </thead>
+                        <thead><tr><th>#</th><th>Full Name</th><th>Username</th><th>Phone</th><th>Actions</th></tr></thead>
                         <tbody id="attendantsBody">
                             <tr><td colspan="5" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
                         </tbody>
@@ -99,17 +166,109 @@
     </main>
 </div>
 
-<!-- Create Attendant Modal -->
-<div class="modal-overlay" id="createModal">
+<!-- GRN Modal -->
+<div class="modal-overlay" id="grnModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Add GRN</h3>
+            <button class="modal-close" onclick="closeGrnModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="alert alert-error" id="grnError"></div>
+            <div class="alert alert-success" id="grnSuccess"></div>
+            <form id="grnForm" onsubmit="return false">
+                <div class="form-group">
+                    <label>Fuel Type *</label>
+                    <select id="grn-fuelType">
+                        <option value="">Select Fuel Type</option>
+                    </select>
+                    <span class="field-error" id="grn-fuelType-error"></span>
+                </div>
+                <div class="form-group">
+                    <label>Quantity (Litres) *</label>
+                    <input type="number" id="grn-qty" step="0.01" min="0.01" placeholder="e.g. 5000">
+                    <span class="field-error" id="grn-qty-error"></span>
+                </div>
+                <div class="form-group">
+                    <label>Price Per Litre (LKR) *</label>
+                    <input type="number" id="grn-price" step="0.01" min="0.01" placeholder="e.g. 320.50">
+                    <span class="field-error" id="grn-price-error"></span>
+                </div>
+                <div class="form-group">
+                    <label>Received Date *</label>
+                    <input type="date" id="grn-date">
+                    <span class="field-error" id="grn-date-error"></span>
+                </div>
+                <div class="form-group">
+                    <label>Supplier</label>
+                    <input type="text" id="grn-supplier" placeholder="e.g. Ceylon Petroleum">
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <input type="text" id="grn-notes" placeholder="Optional">
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeGrnModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitGrn()">Save GRN</button>
+        </div>
+    </div>
+</div>
+
+<!-- Daily Sale Modal -->
+<div class="modal-overlay" id="saleModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Record Daily Sale</h3>
+            <button class="modal-close" onclick="closeSaleModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="alert alert-error" id="saleError"></div>
+            <div class="alert alert-success" id="saleSuccess"></div>
+            <form id="saleForm" onsubmit="return false">
+                <div class="form-group">
+                    <label>Fuel Type *</label>
+                    <select id="sale-fuelType">
+                        <option value="">Select Fuel Type</option>
+                    </select>
+                    <span class="field-error" id="sale-fuelType-error"></span>
+                </div>
+                <div class="form-group">
+                    <label>Litres Sold *</label>
+                    <input type="number" id="sale-litres" step="0.01" min="0.01" placeholder="e.g. 1200">
+                    <span class="field-error" id="sale-litres-error"></span>
+                </div>
+                <div class="form-group">
+                    <label>Price Per Litre (LKR) *</label>
+                    <input type="number" id="sale-price" step="0.01" min="0.01" placeholder="e.g. 320.50">
+                    <span class="field-error" id="sale-price-error"></span>
+                </div>
+                <div class="form-group">
+                    <label>Sale Date *</label>
+                    <input type="date" id="sale-date">
+                    <span class="field-error" id="sale-date-error"></span>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeSaleModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitSale()">Record Sale</button>
+        </div>
+    </div>
+</div>
+
+<!-- Add Attendant Modal -->
+<div class="modal-overlay" id="attendantModal">
     <div class="modal">
         <div class="modal-header">
             <h3>Add Attendant</h3>
-            <button class="modal-close" onclick="closeCreateModal()">&times;</button>
+            <button class="modal-close" onclick="closeAttendantModal()">&times;</button>
         </div>
         <div class="modal-body">
-            <div class="alert alert-error" id="createError"></div>
-            <div class="alert alert-success" id="createSuccess"></div>
-            <form id="createForm" onsubmit="return false">
+            <div class="alert alert-error" id="attError"></div>
+            <div class="alert alert-success" id="attSuccess"></div>
+            <form id="attForm" onsubmit="return false">
                 <div class="form-group">
                     <label>Full Name *</label>
                     <input type="text" id="cu-fullName" placeholder="Enter full name">
@@ -137,8 +296,8 @@
             </form>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeCreateModal()">Cancel</button>
-            <button class="btn btn-primary" onclick="submitCreate()">Add Attendant</button>
+            <button class="btn btn-secondary" onclick="closeAttendantModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitAttendant()">Add Attendant</button>
         </div>
     </div>
 </div>
@@ -146,37 +305,101 @@
 <script src="/js/api.js"></script>
 <script>
     const currentUser = getUser();
-    if (!currentUser || currentUser.role !== 'MANAGER') {
-        window.location.href = '/login.html';
-    }
+    if (!currentUser || currentUser.role !== 'MANAGER') window.location.href = '/login.html';
     document.getElementById('sidebarName').textContent = currentUser.fullName;
     document.getElementById('topbarUser').textContent  = currentUser.fullName;
     document.getElementById('branchLabel').textContent = currentUser.branchName || 'Manager Panel';
 
-    let attendants = [];
+    let attendants = [], fuelTypes = [], branchStock = [], branchGrns = [], branchSales = [];
+    const branchId = currentUser.branchId;
 
     async function init() {
         try {
-            const all = await getUsersByRole('ATTENDANT');
-            attendants = all.filter(a => a.branchId === currentUser.branchId);
-            renderAttendants();
-        } catch (e) { console.error(e); }
+            [attendants, fuelTypes, branchStock, branchGrns, branchSales] = await Promise.all([
+                getUsersByRole('ATTENDANT'),
+                getFuelTypes(),
+                getStockByBranch(branchId),
+                getGrnsByBranch(branchId),
+                getSalesByBranch(branchId)
+            ]);
+            attendants = attendants.filter(a => a.branchId === branchId);
+            renderOverview();
+            populateFuelTypeSelects();
+            setTodayDates();
+        } catch(e) { console.error(e); }
     }
 
-    function renderAttendants() {
+    function setTodayDates() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('grn-date').value  = today;
+        document.getElementById('sale-date').value = today;
+    }
+
+    function renderOverview() {
         document.getElementById('stat-attendants').textContent = attendants.length;
-        const rows = attendants.length === 0
+        document.getElementById('stat-grns').textContent       = branchGrns.length;
+        document.getElementById('stat-sales').textContent      = branchSales.length;
+        renderStockRows('overviewStockBody');
+        renderStockRows('stockBody');
+        renderGrnRows();
+        renderSaleRows();
+        renderAttendantRows();
+    }
+
+    function stockRow(s) {
+        const low = 500;
+        return `<tr>
+            <td>${s.fuelTypeName}</td>
+            <td style="font-weight:600;color:${s.quantityLiters <= low ? '#dc3545' : '#27ae60'}">${Number(s.quantityLiters).toFixed(2)} L</td>
+            <td>${s.lastUpdated ? new Date(s.lastUpdated).toLocaleString() : '-'}</td>
+        </tr>`;
+    }
+
+    function renderStockRows(tbodyId) {
+        document.getElementById(tbodyId).innerHTML = branchStock.length === 0
+            ? '<tr><td colspan="3" style="text-align:center;padding:20px;color:#999">No stock data</td></tr>'
+            : branchStock.map(stockRow).join('');
+    }
+
+    function renderGrnRows() {
+        document.getElementById('grnBody').innerHTML = branchGrns.length === 0
+            ? '<tr><td colspan="7" style="text-align:center;padding:20px;color:#999">No GRN records</td></tr>'
+            : branchGrns.map(g => `<tr>
+                <td><strong>${g.grnNumber}</strong></td>
+                <td>${g.fuelTypeName}</td>
+                <td>${Number(g.quantityLiters).toFixed(2)}</td>
+                <td>${Number(g.pricePerLiter).toFixed(2)}</td>
+                <td>LKR ${Number(g.totalAmount).toLocaleString()}</td>
+                <td>${g.supplier || '-'}</td>
+                <td>${g.receivedDate}</td>
+            </tr>`).join('');
+    }
+
+    function renderSaleRows() {
+        document.getElementById('salesBody').innerHTML = branchSales.length === 0
+            ? '<tr><td colspan="5" style="text-align:center;padding:20px;color:#999">No sales recorded</td></tr>'
+            : branchSales.map(s => `<tr>
+                <td>${s.saleDate}</td>
+                <td>${s.fuelTypeName}</td>
+                <td>${Number(s.litersSold).toFixed(2)} L</td>
+                <td>${Number(s.pricePerLiter).toFixed(2)}</td>
+                <td>LKR ${Number(s.totalAmount).toLocaleString()}</td>
+            </tr>`).join('');
+    }
+
+    function renderAttendantRows() {
+        document.getElementById('attendantsBody').innerHTML = attendants.length === 0
             ? '<tr><td colspan="5" style="text-align:center;padding:20px;color:#999">No attendants yet</td></tr>'
-            : attendants.map((a, i) => `
-                <tr>
-                    <td>${i+1}</td>
-                    <td>${a.fullName}</td>
-                    <td>${a.username}</td>
-                    <td>${a.phone || '-'}</td>
-                    <td><button class="btn btn-danger" style="padding:5px 12px;font-size:12px" onclick="deactivate(${a.id})">Deactivate</button></td>
-                </tr>`).join('');
-        document.getElementById('overviewAttendantsBody').innerHTML = rows;
-        document.getElementById('attendantsBody').innerHTML = rows;
+            : attendants.map((a, i) => `<tr>
+                <td>${i+1}</td><td>${a.fullName}</td><td>${a.username}</td><td>${a.phone || '-'}</td>
+                <td><button class="btn btn-danger" style="padding:5px 12px;font-size:12px" onclick="deactivateAtt(${a.id})">Deactivate</button></td>
+            </tr>`).join('');
+    }
+
+    function populateFuelTypeSelects() {
+        const opts = '<option value="">Select Fuel Type</option>' + fuelTypes.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+        document.getElementById('grn-fuelType').innerHTML  = opts;
+        document.getElementById('sale-fuelType').innerHTML = opts;
     }
 
     function showSection(name, el) {
@@ -187,70 +410,145 @@
         closeSidebar();
     }
 
-    const MGR_FIELDS = ['cu-fullName', 'cu-username', 'cu-password', 'cu-email'];
-
-    function openCreateModal() {
-        document.getElementById('createModal').classList.add('active');
-        document.getElementById('createForm').reset();
-        document.getElementById('createError').classList.remove('show');
-        document.getElementById('createSuccess').classList.remove('show');
-        clearAllFields(MGR_FIELDS);
+    // ---- GRN Modal ----
+    function openGrnModal() {
+        document.getElementById('grnModal').classList.add('active');
+        document.getElementById('grnForm').reset();
+        document.getElementById('grnError').classList.remove('show');
+        document.getElementById('grnSuccess').classList.remove('show');
+        clearAllFields(['grn-fuelType','grn-qty','grn-price','grn-date']);
+        setTodayDates();
     }
+    function closeGrnModal() { document.getElementById('grnModal').classList.remove('active'); }
 
-    function closeCreateModal() {
-        document.getElementById('createModal').classList.remove('active');
-        clearAllFields(MGR_FIELDS);
-    }
+    async function submitGrn() {
+        const errEl = document.getElementById('grnError');
+        const sucEl = document.getElementById('grnSuccess');
+        errEl.classList.remove('show'); sucEl.classList.remove('show');
 
-    async function submitCreate() {
-        const errorEl   = document.getElementById('createError');
-        const successEl = document.getElementById('createSuccess');
-        errorEl.classList.remove('show');
-        successEl.classList.remove('show');
-
-        // Client-side validation (no role/branch selects on this form)
-        if (!validateUserForm(false)) return;
+        let valid = true;
+        if (!document.getElementById('grn-fuelType').value) { setFieldError('grn-fuelType','Select a fuel type.'); valid=false; } else setFieldValid('grn-fuelType');
+        if (!document.getElementById('grn-qty').value || parseFloat(document.getElementById('grn-qty').value) <= 0) { setFieldError('grn-qty','Enter a valid quantity.'); valid=false; } else setFieldValid('grn-qty');
+        if (!document.getElementById('grn-price').value || parseFloat(document.getElementById('grn-price').value) <= 0) { setFieldError('grn-price','Enter a valid price.'); valid=false; } else setFieldValid('grn-price');
+        if (!document.getElementById('grn-date').value) { setFieldError('grn-date','Select a date.'); valid=false; } else setFieldValid('grn-date');
+        if (!valid) return;
 
         const payload = {
-            role:     'ATTENDANT',
-            branchId: currentUser.branchId,
+            branchId:       branchId,
+            fuelTypeId:     parseInt(document.getElementById('grn-fuelType').value),
+            quantityLiters: parseFloat(document.getElementById('grn-qty').value),
+            pricePerLiter:  parseFloat(document.getElementById('grn-price').value),
+            receivedDate:   document.getElementById('grn-date').value,
+            supplier:       document.getElementById('grn-supplier').value.trim() || null,
+            notes:          document.getElementById('grn-notes').value.trim() || null,
+        };
+
+        try {
+            await createGrn(payload);
+            sucEl.textContent = 'GRN saved successfully!';
+            sucEl.classList.add('show');
+            document.getElementById('grnForm').reset();
+            setTodayDates();
+            [branchGrns, branchStock] = await Promise.all([getGrnsByBranch(branchId), getStockByBranch(branchId)]);
+            document.getElementById('stat-grns').textContent = branchGrns.length;
+            renderGrnRows(); renderStockRows('overviewStockBody'); renderStockRows('stockBody');
+        } catch(err) { errEl.textContent = err.message; errEl.classList.add('show'); }
+    }
+
+    // ---- Sale Modal ----
+    function openSaleModal() {
+        document.getElementById('saleModal').classList.add('active');
+        document.getElementById('saleForm').reset();
+        document.getElementById('saleError').classList.remove('show');
+        document.getElementById('saleSuccess').classList.remove('show');
+        clearAllFields(['sale-fuelType','sale-litres','sale-price','sale-date']);
+        setTodayDates();
+    }
+    function closeSaleModal() { document.getElementById('saleModal').classList.remove('active'); }
+
+    async function submitSale() {
+        const errEl = document.getElementById('saleError');
+        const sucEl = document.getElementById('saleSuccess');
+        errEl.classList.remove('show'); sucEl.classList.remove('show');
+
+        let valid = true;
+        if (!document.getElementById('sale-fuelType').value) { setFieldError('sale-fuelType','Select a fuel type.'); valid=false; } else setFieldValid('sale-fuelType');
+        if (!document.getElementById('sale-litres').value || parseFloat(document.getElementById('sale-litres').value) <= 0) { setFieldError('sale-litres','Enter valid litres sold.'); valid=false; } else setFieldValid('sale-litres');
+        if (!document.getElementById('sale-price').value || parseFloat(document.getElementById('sale-price').value) <= 0) { setFieldError('sale-price','Enter a valid price.'); valid=false; } else setFieldValid('sale-price');
+        if (!document.getElementById('sale-date').value) { setFieldError('sale-date','Select a date.'); valid=false; } else setFieldValid('sale-date');
+        if (!valid) return;
+
+        const payload = {
+            fuelTypeId:    parseInt(document.getElementById('sale-fuelType').value),
+            litersSold:    parseFloat(document.getElementById('sale-litres').value),
+            pricePerLiter: parseFloat(document.getElementById('sale-price').value),
+            saleDate:      document.getElementById('sale-date').value,
+        };
+
+        try {
+            await recordDailySale(payload);
+            sucEl.textContent = 'Sale recorded successfully!';
+            sucEl.classList.add('show');
+            document.getElementById('saleForm').reset();
+            setTodayDates();
+            [branchSales, branchStock] = await Promise.all([getSalesByBranch(branchId), getStockByBranch(branchId)]);
+            document.getElementById('stat-sales').textContent = branchSales.length;
+            renderSaleRows(); renderStockRows('overviewStockBody'); renderStockRows('stockBody');
+        } catch(err) { errEl.textContent = err.message; errEl.classList.add('show'); }
+    }
+
+    // ---- Attendant Modal ----
+    const ATT_FIELDS = ['cu-fullName','cu-username','cu-password','cu-email'];
+    function openAttendantModal() {
+        document.getElementById('attendantModal').classList.add('active');
+        document.getElementById('attForm').reset();
+        document.getElementById('attError').classList.remove('show');
+        document.getElementById('attSuccess').classList.remove('show');
+        clearAllFields(ATT_FIELDS);
+    }
+    function closeAttendantModal() { document.getElementById('attendantModal').classList.remove('active'); }
+
+    async function submitAttendant() {
+        const errEl = document.getElementById('attError');
+        const sucEl = document.getElementById('attSuccess');
+        errEl.classList.remove('show'); sucEl.classList.remove('show');
+        if (!validateUserForm(false)) return;
+        const payload = {
+            role: 'ATTENDANT', branchId,
             fullName: document.getElementById('cu-fullName').value.trim(),
             username: document.getElementById('cu-username').value.trim(),
             password: document.getElementById('cu-password').value,
             email:    document.getElementById('cu-email').value.trim() || null,
             phone:    document.getElementById('cu-phone').value.trim() || null,
         };
-
         try {
             await createUser(payload);
-            successEl.textContent = 'Attendant added successfully!';
-            successEl.classList.add('show');
-            document.getElementById('createForm').reset();
-            clearAllFields(MGR_FIELDS);
+            sucEl.textContent = 'Attendant added!';
+            sucEl.classList.add('show');
+            document.getElementById('attForm').reset();
+            clearAllFields(ATT_FIELDS);
             const all = await getUsersByRole('ATTENDANT');
-            attendants = all.filter(a => a.branchId === currentUser.branchId);
-            renderAttendants();
-        } catch (err) {
-            errorEl.textContent = err.message;
-            errorEl.classList.add('show');
-        }
+            attendants = all.filter(a => a.branchId === branchId);
+            document.getElementById('stat-attendants').textContent = attendants.length;
+            renderAttendantRows();
+        } catch(err) { errEl.textContent = err.message; errEl.classList.add('show'); }
     }
 
-    async function deactivate(id) {
+    async function deactivateAtt(id) {
         if (!confirm('Deactivate this attendant?')) return;
         try {
             await deactivateUser(id);
             const all = await getUsersByRole('ATTENDANT');
-            attendants = all.filter(a => a.branchId === currentUser.branchId);
-            renderAttendants();
-        } catch (err) { alert(err.message); }
+            attendants = all.filter(a => a.branchId === branchId);
+            document.getElementById('stat-attendants').textContent = attendants.length;
+            renderAttendantRows();
+        } catch(err) { alert(err.message); }
     }
 
     function toggleSidebar() {
         document.getElementById('sidebar').classList.toggle('open');
         document.getElementById('sidebarOverlay').classList.toggle('active');
     }
-
     function closeSidebar() {
         document.getElementById('sidebar').classList.remove('open');
         document.getElementById('sidebarOverlay').classList.remove('active');

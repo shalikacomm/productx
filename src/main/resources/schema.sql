@@ -48,6 +48,79 @@ INSERT IGNORE INTO branches (name, location, code) VALUES
 ('Branch Gamma', 'Location C', 'BR-GAMMA');
 
 -- Insert default admin user (password: Admin@123)
+-- =============================================
+-- FUEL TYPES TABLE
+-- =============================================
+CREATE TABLE IF NOT EXISTS fuel_types (
+    id     BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name   VARCHAR(50) NOT NULL,
+    code   VARCHAR(20) UNIQUE NOT NULL,
+    active BOOLEAN DEFAULT TRUE
+);
+
+-- =============================================
+-- GRN TABLE (Goods Received Note)
+-- =============================================
+CREATE TABLE IF NOT EXISTS grn (
+    id               BIGINT AUTO_INCREMENT PRIMARY KEY,
+    grn_number       VARCHAR(50) UNIQUE NOT NULL,
+    branch_id        BIGINT NOT NULL,
+    fuel_type_id     BIGINT NOT NULL,
+    quantity_liters  DECIMAL(10,2) NOT NULL,
+    price_per_liter  DECIMAL(10,2) NOT NULL,
+    total_amount     DECIMAL(12,2) NOT NULL,
+    supplier         VARCHAR(100),
+    received_date    DATE NOT NULL,
+    notes            TEXT,
+    created_by       BIGINT NOT NULL,
+    created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_grn_branch    FOREIGN KEY (branch_id)    REFERENCES branches(id),
+    CONSTRAINT fk_grn_fuel      FOREIGN KEY (fuel_type_id) REFERENCES fuel_types(id),
+    CONSTRAINT fk_grn_creator   FOREIGN KEY (created_by)   REFERENCES users(id)
+);
+
+-- =============================================
+-- STOCK TABLE (one row per branch + fuel type)
+-- =============================================
+CREATE TABLE IF NOT EXISTS stock (
+    id               BIGINT AUTO_INCREMENT PRIMARY KEY,
+    branch_id        BIGINT NOT NULL,
+    fuel_type_id     BIGINT NOT NULL,
+    quantity_liters  DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    last_updated     TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_stock_branch_fuel (branch_id, fuel_type_id),
+    CONSTRAINT fk_stock_branch FOREIGN KEY (branch_id)    REFERENCES branches(id),
+    CONSTRAINT fk_stock_fuel   FOREIGN KEY (fuel_type_id) REFERENCES fuel_types(id)
+);
+
+-- =============================================
+-- DAILY SALES TABLE
+-- =============================================
+CREATE TABLE IF NOT EXISTS daily_sales (
+    id               BIGINT AUTO_INCREMENT PRIMARY KEY,
+    sale_date        DATE NOT NULL,
+    branch_id        BIGINT NOT NULL,
+    fuel_type_id     BIGINT NOT NULL,
+    liters_sold      DECIMAL(10,2) NOT NULL,
+    price_per_liter  DECIMAL(10,2) NOT NULL,
+    total_amount     DECIMAL(12,2) NOT NULL,
+    recorded_by      BIGINT NOT NULL,
+    created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_sale_branch  FOREIGN KEY (branch_id)    REFERENCES branches(id),
+    CONSTRAINT fk_sale_fuel    FOREIGN KEY (fuel_type_id) REFERENCES fuel_types(id),
+    CONSTRAINT fk_sale_user    FOREIGN KEY (recorded_by)  REFERENCES users(id)
+);
+
+-- =============================================
+-- SEED: FUEL TYPES
+-- =============================================
+INSERT IGNORE INTO fuel_types (name, code) VALUES
+('92 Petrol',    'PETROL_92'),
+('95 Petrol',    'PETROL_95'),
+('Auto Diesel',  'DIESEL_AUTO'),
+('Super Diesel', 'DIESEL_SUPER'),
+('Kerosene',     'KEROSENE');
+
 -- Default admin password: Admin@123
 -- Hash generated with BCrypt(strength=10)
 INSERT IGNORE INTO users (username, password, full_name, email, role, active)

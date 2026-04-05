@@ -139,9 +139,6 @@
     document.getElementById('topbarUser').textContent  = currentUser.fullName;
     document.getElementById('branchLabel').textContent = currentUser.branchName || 'Attendant Panel';
 
-    function fmtTime(dt) {
-        return dt ? new Date(dt).toLocaleString() : '-';
-    }
 
     function statusBadge(status) {
         const colors = {

@@ -1,5 +1,25 @@
 const API_BASE = '/api';
 
+const LK_LOCALE = 'en-LK';
+const LK_TZ     = 'Asia/Colombo';
+
+function fmtTime(dt) {
+    if (!dt) return '-';
+    return new Date(dt).toLocaleString(LK_LOCALE, {
+        timeZone: LK_TZ,
+        year: 'numeric', month: 'short', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', hour12: true
+    });
+}
+
+function fmtDate(dt) {
+    if (!dt) return '-';
+    return new Date(dt).toLocaleDateString(LK_LOCALE, {
+        timeZone: LK_TZ,
+        year: 'numeric', month: 'short', day: '2-digit'
+    });
+}
+
 function getToken() {
     return localStorage.getItem('xp_token');
 }

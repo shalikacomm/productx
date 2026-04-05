@@ -286,7 +286,7 @@
             <form id="createUserForm" onsubmit="return false">
                 <div class="form-group">
                     <label>Role *</label>
-                    <select id="cu-role" onchange="onRoleChange()">
+                    <select id="cu-role">
                         <option value="">Select Role</option>
                         <option value="MANAGER">Manager</option>
                         <option value="CLERK">Clerk</option>
@@ -294,7 +294,7 @@
                     </select>
                     <span class="field-error" id="cu-role-error"></span>
                 </div>
-                <div class="form-group" id="branchGroup" style="display:none">
+                <div class="form-group">
                     <label>Branch *</label>
                     <select id="cu-branch">
                         <option value="">Select Branch</option>
@@ -503,24 +503,15 @@
         document.getElementById('createUserForm').reset();
         document.getElementById('createError').classList.remove('show');
         document.getElementById('createSuccess').classList.remove('show');
-        document.getElementById('branchGroup').style.display = 'none';
         clearAllFields(ALL_FIELDS);
         if (presetRole) {
             document.getElementById('cu-role').value = presetRole;
-            onRoleChange();
         }
     }
 
     function closeCreateModal() {
         document.getElementById('createUserModal').classList.remove('active');
         clearAllFields(ALL_FIELDS);
-    }
-
-    function onRoleChange() {
-        const role = document.getElementById('cu-role').value;
-        document.getElementById('branchGroup').style.display = role ? 'block' : 'none';
-        clearFieldState('cu-role');
-        clearFieldState('cu-branch');
     }
 
     async function submitCreateUser() {
@@ -532,9 +523,8 @@
         const roleVal   = document.getElementById('cu-role').value;
         const branchVal = document.getElementById('cu-branch').value;
 
-        // Client-side validation
-        const requireBranch = !!roleVal; // branch required when role is selected
-        if (!validateUserForm(requireBranch)) return;
+        // Branch always required for all roles
+        if (!validateUserForm(true)) return;
 
         const payload = {
             role:     roleVal,
@@ -551,7 +541,6 @@
             successEl.textContent = 'User created successfully!';
             successEl.classList.add('show');
             document.getElementById('createUserForm').reset();
-            document.getElementById('branchGroup').style.display = 'none';
             clearAllFields(ALL_FIELDS);
             allUsers = await getAllUsers();
             renderStats();

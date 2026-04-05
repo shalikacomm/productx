@@ -38,17 +38,6 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- =============================================
--- SEED DATA
--- =============================================
-
--- Insert 3 branches
-INSERT IGNORE INTO branches (name, location, code) VALUES
-('Branch Alpha', 'Location A', 'BR-ALPHA'),
-('Branch Beta',  'Location B', 'BR-BETA'),
-('Branch Gamma', 'Location C', 'BR-GAMMA');
-
--- Insert default admin user (password: Admin@123)
--- =============================================
 -- FUEL TYPES TABLE
 -- =============================================
 CREATE TABLE IF NOT EXISTS fuel_types (
@@ -74,9 +63,9 @@ CREATE TABLE IF NOT EXISTS grn (
     notes            TEXT,
     created_by       BIGINT NOT NULL,
     created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_grn_branch    FOREIGN KEY (branch_id)    REFERENCES branches(id),
-    CONSTRAINT fk_grn_fuel      FOREIGN KEY (fuel_type_id) REFERENCES fuel_types(id),
-    CONSTRAINT fk_grn_creator   FOREIGN KEY (created_by)   REFERENCES users(id)
+    CONSTRAINT fk_grn_branch  FOREIGN KEY (branch_id)    REFERENCES branches(id),
+    CONSTRAINT fk_grn_fuel    FOREIGN KEY (fuel_type_id) REFERENCES fuel_types(id),
+    CONSTRAINT fk_grn_creator FOREIGN KEY (created_by)   REFERENCES users(id)
 );
 
 -- =============================================
@@ -106,14 +95,22 @@ CREATE TABLE IF NOT EXISTS daily_sales (
     total_amount     DECIMAL(12,2) NOT NULL,
     recorded_by      BIGINT NOT NULL,
     created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_sale_branch  FOREIGN KEY (branch_id)    REFERENCES branches(id),
-    CONSTRAINT fk_sale_fuel    FOREIGN KEY (fuel_type_id) REFERENCES fuel_types(id),
-    CONSTRAINT fk_sale_user    FOREIGN KEY (recorded_by)  REFERENCES users(id)
+    CONSTRAINT fk_sale_branch FOREIGN KEY (branch_id)    REFERENCES branches(id),
+    CONSTRAINT fk_sale_fuel   FOREIGN KEY (fuel_type_id) REFERENCES fuel_types(id),
+    CONSTRAINT fk_sale_user   FOREIGN KEY (recorded_by)  REFERENCES users(id)
 );
 
 -- =============================================
--- SEED: FUEL TYPES
+-- SEED DATA
 -- =============================================
+
+-- 3 Branches
+INSERT IGNORE INTO branches (name, location, code) VALUES
+('Branch Alpha', 'Location A', 'BR-ALPHA'),
+('Branch Beta',  'Location B', 'BR-BETA'),
+('Branch Gamma', 'Location C', 'BR-GAMMA');
+
+-- 5 Fuel Types
 INSERT IGNORE INTO fuel_types (name, code) VALUES
 ('92 Petrol',    'PETROL_92'),
 ('95 Petrol',    'PETROL_95'),
@@ -121,7 +118,24 @@ INSERT IGNORE INTO fuel_types (name, code) VALUES
 ('Super Diesel', 'DIESEL_SUPER'),
 ('Kerosene',     'KEROSENE');
 
--- Default admin password: Admin@123
--- Hash generated with BCrypt(strength=10)
+-- =============================================
+-- ATTENDANCE TABLE
+-- =============================================
+CREATE TABLE IF NOT EXISTS attendance (
+    id           BIGINT AUTO_INCREMENT PRIMARY KEY,
+    attendant_id BIGINT NOT NULL,
+    branch_id    BIGINT NOT NULL,
+    login_time   DATETIME NOT NULL,
+    logout_time  DATETIME,
+    status       ENUM('PENDING', 'APPROVED', 'REJECTED') NOT NULL DEFAULT 'PENDING',
+    approved_by  BIGINT,
+    approved_at  DATETIME,
+    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_att_attendant FOREIGN KEY (attendant_id) REFERENCES users(id),
+    CONSTRAINT fk_att_branch    FOREIGN KEY (branch_id)    REFERENCES branches(id),
+    CONSTRAINT fk_att_approver  FOREIGN KEY (approved_by)  REFERENCES users(id)
+);
+
+-- Default admin user  (password: Admin@123)
 INSERT IGNORE INTO users (username, password, full_name, email, role, active)
 VALUES ('admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'System Administrator', 'admin@xproduct.com', 'ADMIN', TRUE);

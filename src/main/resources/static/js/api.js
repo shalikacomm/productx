@@ -102,6 +102,27 @@ async function getStockByBranch(branchId) {
     return apiFetch('/stock/branch/' + branchId);
 }
 
+// Attendance
+async function getPendingAttendance() {
+    return apiFetch('/attendance/pending');
+}
+
+async function getBranchAttendance() {
+    return apiFetch('/attendance/branch');
+}
+
+async function approveAttendance(id) {
+    return apiFetch('/attendance/' + id + '/approve', { method: 'PUT' });
+}
+
+async function rejectAttendance(id) {
+    return apiFetch('/attendance/' + id + '/reject', { method: 'PUT' });
+}
+
+async function getMyAttendance() {
+    return apiFetch('/attendance/my');
+}
+
 // Daily Sales
 async function recordDailySale(payload) {
     return apiFetch('/sales', { method: 'POST', body: JSON.stringify(payload) });

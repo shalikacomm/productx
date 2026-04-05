@@ -37,6 +37,12 @@
             <a onclick="showSection('sales', this)">
                 <span class="icon">&#128200;</span> Daily Sales
             </a>
+            <a onclick="showSection('approvals', this)">
+                <span class="icon">&#9989;</span> Approvals <span id="pendingBadge" style="background:#e94560;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;margin-left:4px;display:none"></span>
+            </a>
+            <a onclick="showSection('attendance', this)">
+                <span class="icon">&#128197;</span> Attendance
+            </a>
             <a onclick="showSection('attendants', this)">
                 <span class="icon">&#128110;</span> Attendants
             </a>
@@ -138,6 +144,40 @@
                             <tr><th>Date</th><th>Fuel Type</th><th>Litres Sold</th><th>Price/L</th><th>Total (LKR)</th></tr>
                         </thead>
                         <tbody id="salesBody">
+                            <tr><td colspan="5" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance Approvals -->
+        <div class="section-page" id="section-approvals">
+            <div class="page-header"><h2>Pending Approvals</h2></div>
+            <div class="card">
+                <div class="card-body">
+                    <table>
+                        <thead>
+                            <tr><th>Attendant</th><th>Login Time</th><th>Actions</th></tr>
+                        </thead>
+                        <tbody id="pendingBody">
+                            <tr><td colspan="3" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance History -->
+        <div class="section-page" id="section-attendance">
+            <div class="page-header"><h2>Attendance History</h2></div>
+            <div class="card">
+                <div class="card-body">
+                    <table>
+                        <thead>
+                            <tr><th>Attendant</th><th>Login Time</th><th>Status</th><th>Approved By</th><th>Approved At</th></tr>
+                        </thead>
+                        <tbody id="attendanceBody">
                             <tr><td colspan="5" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
                         </tbody>
                     </table>
@@ -310,22 +350,24 @@
     document.getElementById('topbarUser').textContent  = currentUser.fullName;
     document.getElementById('branchLabel').textContent = currentUser.branchName || 'Manager Panel';
 
-    let attendants = [], fuelTypes = [], branchStock = [], branchGrns = [], branchSales = [];
+    let attendants = [], fuelTypes = [], branchStock = [], branchGrns = [], branchSales = [], pendingList = [];
     const branchId = currentUser.branchId;
 
     async function init() {
         try {
-            [attendants, fuelTypes, branchStock, branchGrns, branchSales] = await Promise.all([
+            [attendants, fuelTypes, branchStock, branchGrns, branchSales, pendingList] = await Promise.all([
                 getUsersByRole('ATTENDANT'),
                 getFuelTypes(),
                 getStockByBranch(branchId),
                 getGrnsByBranch(branchId),
-                getSalesByBranch(branchId)
+                getSalesByBranch(branchId),
+                getPendingAttendance()
             ]);
             attendants = attendants.filter(a => a.branchId === branchId);
             renderOverview();
             populateFuelTypeSelects();
             setTodayDates();
+            updatePendingBadge();
         } catch(e) { console.error(e); }
     }
 
@@ -402,11 +444,76 @@
         document.getElementById('sale-fuelType').innerHTML = opts;
     }
 
+    function statusBadge(status) {
+        const map = { PENDING: 'badge-attendant', APPROVED: 'badge-clerk', REJECTED: 'badge-admin' };
+        return `<span class="badge ${map[status] || ''}">${status}</span>`;
+    }
+
+    function updatePendingBadge() {
+        const badge = document.getElementById('pendingBadge');
+        if (pendingList.length > 0) {
+            badge.textContent = pendingList.length;
+            badge.style.display = 'inline';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+
+    function renderPending() {
+        document.getElementById('pendingBody').innerHTML = pendingList.length === 0
+            ? '<tr><td colspan="3" style="text-align:center;padding:20px;color:#999">No pending approvals</td></tr>'
+            : pendingList.map(a => `<tr>
+                <td><strong>${a.attendantName}</strong><br><small style="color:#888">${a.attendantUsername}</small></td>
+                <td>${new Date(a.loginTime).toLocaleString()}</td>
+                <td style="display:flex;gap:8px">
+                    <button class="btn btn-success" style="padding:5px 14px;font-size:12px" onclick="doApprove(${a.id})">Approve</button>
+                    <button class="btn btn-danger"  style="padding:5px 14px;font-size:12px" onclick="doReject(${a.id})">Reject</button>
+                </td>
+            </tr>`).join('');
+    }
+
+    async function loadAttendanceHistory() {
+        document.getElementById('attendanceBody').innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>';
+        try {
+            const list = await getBranchAttendance();
+            document.getElementById('attendanceBody').innerHTML = list.length === 0
+                ? '<tr><td colspan="5" style="text-align:center;padding:20px;color:#999">No records</td></tr>'
+                : list.map(a => `<tr>
+                    <td>${a.attendantName}<br><small style="color:#888">${a.attendantUsername}</small></td>
+                    <td>${new Date(a.loginTime).toLocaleString()}</td>
+                    <td>${statusBadge(a.status)}</td>
+                    <td>${a.approvedByUsername || '-'}</td>
+                    <td>${a.approvedAt ? new Date(a.approvedAt).toLocaleString() : '-'}</td>
+                </tr>`).join('');
+        } catch(e) { console.error(e); }
+    }
+
+    async function doApprove(id) {
+        try {
+            await approveAttendance(id);
+            pendingList = await getPendingAttendance();
+            updatePendingBadge();
+            renderPending();
+        } catch(e) { alert(e.message); }
+    }
+
+    async function doReject(id) {
+        if (!confirm('Reject this login?')) return;
+        try {
+            await rejectAttendance(id);
+            pendingList = await getPendingAttendance();
+            updatePendingBadge();
+            renderPending();
+        } catch(e) { alert(e.message); }
+    }
+
     function showSection(name, el) {
         document.querySelectorAll('.section-page').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active'));
         document.getElementById('section-' + name).classList.add('active');
         if (el) el.classList.add('active');
+        if (name === 'approvals')   renderPending();
+        if (name === 'attendance')  loadAttendanceHistory();
         closeSidebar();
     }
 

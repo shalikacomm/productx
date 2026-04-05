@@ -5,10 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>X-Product | Attendant Dashboard</title>
     <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .status-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 24px;
+        }
+        .status-icon { font-size: 48px; margin-bottom: 12px; }
+        .status-label { font-size: 13px; color: #888; margin-bottom: 6px; }
+        .status-value { font-size: 22px; font-weight: 700; }
+        .status-pending  { color: #e67e22; }
+        .status-approved { color: #27ae60; }
+        .status-rejected { color: #c0392b; }
+        .attendance-time { font-size: 14px; color: #555; margin-top: 8px; }
+    </style>
 </head>
 <body>
 
-<!-- Mobile Topbar -->
 <div class="topbar">
     <button class="hamburger" onclick="toggleSidebar()" aria-label="Menu">
         <span></span><span></span><span></span>
@@ -17,7 +33,6 @@
     <span class="topbar-user" id="topbarUser"></span>
 </div>
 
-<!-- Sidebar Backdrop -->
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
 
 <div class="dashboard">
@@ -27,7 +42,12 @@
             <p id="branchLabel">Attendant Panel</p>
         </div>
         <nav>
-            <a class="active"><span class="icon">&#9783;</span> Dashboard</a>
+            <a class="active" onclick="showSection('overview', this)">
+                <span class="icon">&#9783;</span> Dashboard
+            </a>
+            <a onclick="showSection('history', this)">
+                <span class="icon">&#128197;</span> My Attendance
+            </a>
         </nav>
         <div class="user-info">
             <div class="name" id="sidebarName">-</div>
@@ -37,26 +57,122 @@
     </aside>
 
     <main class="main">
-        <div class="page-header">
-            <h2>Attendant Dashboard</h2>
+
+        <!-- Overview -->
+        <div class="section-page active" id="section-overview">
+            <div class="page-header"><h2>Dashboard</h2></div>
+
+            <!-- Login Status Card -->
+            <div class="status-card">
+                <div class="status-icon" id="statusIcon">&#9203;</div>
+                <div class="status-label">Today's Login Status</div>
+                <div class="status-value" id="statusValue">-</div>
+                <div class="attendance-time" id="loginTimeDisplay"></div>
+                <div style="margin-top:16px;font-size:13px;color:#aaa" id="statusHint"></div>
+            </div>
+
+            <!-- Recent Attendance -->
+            <div class="card">
+                <div class="card-header"><h3>Recent Attendance</h3></div>
+                <div class="card-body">
+                    <table>
+                        <thead><tr><th>Login Time</th><th>Status</th><th>Approved By</th></tr></thead>
+                        <tbody id="recentBody">
+                            <tr><td colspan="3" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-        <div class="card" style="padding: 40px; text-align: center; color: #888;">
-            <p style="font-size:18px;">Welcome, <strong id="welcomeName"></strong></p>
-            <p style="margin-top:10px;">More modules coming soon.</p>
+
+        <!-- Full History -->
+        <div class="section-page" id="section-history">
+            <div class="page-header"><h2>My Attendance History</h2></div>
+            <div class="card">
+                <div class="card-body">
+                    <table>
+                        <thead><tr><th>Login Time</th><th>Status</th><th>Approved By</th><th>Approved At</th></tr></thead>
+                        <tbody id="historyBody">
+                            <tr><td colspan="4" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
+
     </main>
 </div>
 
 <script src="/js/api.js"></script>
 <script>
     const currentUser = getUser();
-    if (!currentUser || currentUser.role !== 'ATTENDANT') {
-        window.location.href = '/login.html';
-    }
+    if (!currentUser || currentUser.role !== 'ATTENDANT') window.location.href = '/login.html';
     document.getElementById('sidebarName').textContent = currentUser.fullName;
     document.getElementById('topbarUser').textContent  = currentUser.fullName;
-    document.getElementById('welcomeName').textContent = currentUser.fullName;
     document.getElementById('branchLabel').textContent = currentUser.branchName || 'Attendant Panel';
+
+    function statusBadge(status) {
+        const map = { PENDING: 'badge-attendant', APPROVED: 'badge-clerk', REJECTED: 'badge-admin' };
+        return `<span class="badge ${map[status] || ''}">${status}</span>`;
+    }
+
+    function renderStatusCard(status, loginTime) {
+        const icons = { PENDING: '&#9203;', APPROVED: '&#9989;', REJECTED: '&#10060;' };
+        const classes = { PENDING: 'status-pending', APPROVED: 'status-approved', REJECTED: 'status-rejected' };
+        const hints = {
+            PENDING:  'Waiting for your branch manager to approve your login.',
+            APPROVED: 'Your login has been approved. Have a great shift!',
+            REJECTED: 'Your login was rejected. Please contact your manager.'
+        };
+        document.getElementById('statusIcon').innerHTML  = icons[status] || '&#9203;';
+        document.getElementById('statusValue').textContent = status;
+        document.getElementById('statusValue').className   = 'status-value ' + (classes[status] || '');
+        document.getElementById('loginTimeDisplay').textContent = loginTime
+            ? 'Logged in at: ' + new Date(loginTime).toLocaleString() : '';
+        document.getElementById('statusHint').textContent = hints[status] || '';
+    }
+
+    function renderAttendanceRows(list, tbodyId, cols) {
+        document.getElementById(tbodyId).innerHTML = list.length === 0
+            ? `<tr><td colspan="${cols}" style="text-align:center;padding:20px;color:#999">No records</td></tr>`
+            : list.map(a => `<tr>
+                <td>${new Date(a.loginTime).toLocaleString()}</td>
+                <td>${statusBadge(a.status)}</td>
+                <td>${a.approvedByUsername || '-'}</td>
+                ${cols === 4 ? `<td>${a.approvedAt ? new Date(a.approvedAt).toLocaleString() : '-'}</td>` : ''}
+            </tr>`).join('');
+    }
+
+    async function init() {
+        try {
+            const list = await getMyAttendance();
+
+            // Show current session status from login response if available
+            const status    = currentUser.attendanceStatus || (list[0]?.status);
+            const loginTime = list[0]?.loginTime;
+            if (status) renderStatusCard(status, loginTime);
+
+            renderAttendanceRows(list.slice(0, 5), 'recentBody', 3);
+            renderAttendanceRows(list, 'historyBody', 4);
+
+            // Poll every 30s to reflect manager approval automatically
+            setInterval(async () => {
+                const updated = await getMyAttendance();
+                if (updated[0]?.status !== list[0]?.status) {
+                    renderStatusCard(updated[0].status, updated[0].loginTime);
+                    renderAttendanceRows(updated.slice(0, 5), 'recentBody', 3);
+                }
+            }, 30000);
+        } catch(e) { console.error(e); }
+    }
+
+    function showSection(name, el) {
+        document.querySelectorAll('.section-page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active'));
+        document.getElementById('section-' + name).classList.add('active');
+        if (el) el.classList.add('active');
+        closeSidebar();
+    }
 
     function toggleSidebar() {
         document.getElementById('sidebar').classList.toggle('open');
@@ -66,6 +182,8 @@
         document.getElementById('sidebar').classList.remove('open');
         document.getElementById('sidebarOverlay').classList.remove('active');
     }
+
+    init();
 </script>
 </body>
 </html>

@@ -12,4 +12,7 @@ public class LoginResponse {
     private String role;
     private Long branchId;
     private String branchName;
+    // Populated only for ATTENDANT role
+    private Long attendanceId;
+    private String attendanceStatus;
 }

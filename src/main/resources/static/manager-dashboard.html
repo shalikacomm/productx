@@ -87,7 +87,7 @@
                 <div class="card-header"><h3>Branch Stock</h3></div>
                 <div class="card-body">
                     <table>
-                        <thead><tr><th>Fuel Type</th><th>Stock (Litres)</th><th>Last Updated</th></tr></thead>
+                        <thead><tr><th>Item Type</th><th>Stock (Litres)</th><th>Last Updated</th></tr></thead>
                         <tbody id="overviewStockBody">
                             <tr><td colspan="3" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
                         </tbody>
@@ -102,7 +102,7 @@
             <div class="card">
                 <div class="card-body">
                     <table>
-                        <thead><tr><th>Fuel Type</th><th>Stock (Litres)</th><th>Last Updated</th></tr></thead>
+                        <thead><tr><th>Item Type</th><th>Stock (Litres)</th><th>Last Updated</th></tr></thead>
                         <tbody id="stockBody">
                             <tr><td colspan="3" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
                         </tbody>
@@ -121,7 +121,7 @@
                 <div class="card-body">
                     <table>
                         <thead>
-                            <tr><th>GRN No.</th><th>Fuel Type</th><th>Qty (L)</th><th>Price/L</th><th>Total (LKR)</th><th>Supplier</th><th>Date</th></tr>
+                            <tr><th>GRN No.</th><th>Item Type</th><th>Qty (L)</th><th>Price/L</th><th>Total (LKR)</th><th>Supplier</th><th>Date</th></tr>
                         </thead>
                         <tbody id="grnBody">
                             <tr><td colspan="7" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
@@ -141,7 +141,7 @@
                 <div class="card-body">
                     <table>
                         <thead>
-                            <tr><th>Date</th><th>Fuel Type</th><th>Litres Sold</th><th>Price/L</th><th>Total (LKR)</th></tr>
+                            <tr><th>Date</th><th>Item Type</th><th>Qty Sold</th><th>Price/Unit</th><th>Total (LKR)</th><th>Recorded By</th></tr>
                         </thead>
                         <tbody id="salesBody">
                             <tr><td colspan="5" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
@@ -222,19 +222,19 @@
             <div class="alert alert-success" id="grnSuccess"></div>
             <form id="grnForm" onsubmit="return false">
                 <div class="form-group">
-                    <label>Fuel Type *</label>
-                    <select id="grn-fuelType">
-                        <option value="">Select Fuel Type</option>
+                    <label>Item Type *</label>
+                    <select id="grn-fuelType" onchange="onGrnItemTypeChange(this.value)">
+                        <option value="">Select Item Type</option>
                     </select>
                     <span class="field-error" id="grn-fuelType-error"></span>
                 </div>
                 <div class="form-group">
-                    <label>Quantity (Litres) *</label>
+                    <label id="grn-qty-label">Quantity *</label>
                     <input type="number" id="grn-qty" step="0.01" min="0.01" placeholder="e.g. 5000">
                     <span class="field-error" id="grn-qty-error"></span>
                 </div>
                 <div class="form-group">
-                    <label>Price Per Litre (LKR) *</label>
+                    <label>Price Per Unit (LKR) *</label>
                     <input type="number" id="grn-price" step="0.01" min="0.01" placeholder="e.g. 320.50">
                     <span class="field-error" id="grn-price-error"></span>
                 </div>
@@ -272,19 +272,20 @@
             <div class="alert alert-success" id="saleSuccess"></div>
             <form id="saleForm" onsubmit="return false">
                 <div class="form-group">
-                    <label>Fuel Type *</label>
-                    <select id="sale-fuelType">
-                        <option value="">Select Fuel Type</option>
+                    <label>Item Type *</label>
+                    <select id="sale-fuelType" onchange="onSaleItemTypeChange(this.value)">
+                        <option value="">Select Item Type</option>
                     </select>
                     <span class="field-error" id="sale-fuelType-error"></span>
+                    <small id="sale-stock-hint" style="color:#27ae60;display:none;margin-top:4px;display:block"></small>
                 </div>
                 <div class="form-group">
-                    <label>Litres Sold *</label>
+                    <label id="sale-qty-label">Quantity Sold *</label>
                     <input type="number" id="sale-litres" step="0.01" min="0.01" placeholder="e.g. 1200">
                     <span class="field-error" id="sale-litres-error"></span>
                 </div>
                 <div class="form-group">
-                    <label>Price Per Litre (LKR) *</label>
+                    <label id="sale-price-label">Price Per Unit (LKR) *</label>
                     <input type="number" id="sale-price" step="0.01" min="0.01" placeholder="e.g. 320.50">
                     <span class="field-error" id="sale-price-error"></span>
                 </div>
@@ -445,13 +446,14 @@
 
     function renderSaleRows() {
         document.getElementById('salesBody').innerHTML = branchSales.length === 0
-            ? '<tr><td colspan="5" style="text-align:center;padding:20px;color:#999">No sales recorded</td></tr>'
+            ? '<tr><td colspan="6" style="text-align:center;padding:20px;color:#999">No sales recorded</td></tr>'
             : branchSales.map(s => `<tr>
                 <td>${s.saleDate}</td>
                 <td>${s.fuelTypeName}</td>
-                <td>${Number(s.litersSold).toFixed(2)} L</td>
-                <td>${Number(s.pricePerLiter).toFixed(2)}</td>
+                <td>${Number(s.litersSold).toFixed(2)} ${s.fuelTypeUnit || ''}</td>
+                <td>LKR ${Number(s.pricePerLiter).toFixed(2)}</td>
                 <td>LKR ${Number(s.totalAmount).toLocaleString()}</td>
+                <td>${s.recordedByUsername || '-'}</td>
             </tr>`).join('');
     }
 
@@ -465,9 +467,41 @@
     }
 
     function populateFuelTypeSelects() {
-        const opts = '<option value="">Select Fuel Type</option>' + fuelTypes.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+        const opts = '<option value="">Select Item Type</option>' + fuelTypes.map(f => `<option value="${f.id}" data-unit="${f.unit}">${f.name} (${f.unit})</option>`).join('');
         document.getElementById('grn-fuelType').innerHTML  = opts;
         document.getElementById('sale-fuelType').innerHTML = opts;
+    }
+
+    function onGrnItemTypeChange(val) {
+        const sel = document.getElementById('grn-fuelType');
+        const opt = sel.options[sel.selectedIndex];
+        const unit = val ? (opt.dataset.unit || 'Units') : 'Units';
+        document.getElementById('grn-qty-label').textContent = `Quantity (${unit}) *`;
+    }
+
+    function onSaleItemTypeChange(val) {
+        const sel    = document.getElementById('sale-fuelType');
+        const opt    = sel.options[sel.selectedIndex];
+        const unit   = val ? (opt.dataset.unit || 'Units') : 'Units';
+        const hint   = document.getElementById('sale-stock-hint');
+        document.getElementById('sale-qty-label').textContent   = `Qty Sold (${unit}) *`;
+        document.getElementById('sale-price-label').textContent = `Price Per ${unit} (LKR) *`;
+
+        // Show available stock
+        if (val && branchStock.length) {
+            const ft = fuelTypes.find(f => String(f.id) === String(val));
+            const s  = branchStock.find(s => String(s.fuelTypeId) === String(val));
+            if (s) {
+                hint.textContent = `Available stock: ${Number(s.quantityLiters).toFixed(2)} ${unit}`;
+                hint.style.display = 'block';
+            } else {
+                hint.textContent = 'No stock available for this item.';
+                hint.style.color = '#e94560';
+                hint.style.display = 'block';
+            }
+        } else {
+            hint.style.display = 'none';
+        }
     }
 
     function statusBadge(status) {
@@ -584,6 +618,7 @@
         document.getElementById('grnForm').reset();
         document.getElementById('grnError').classList.remove('show');
         document.getElementById('grnSuccess').classList.remove('show');
+        document.getElementById('grn-qty-label').textContent = 'Quantity *';
         clearAllFields(['grn-fuelType','grn-qty','grn-price','grn-date']);
         setTodayDates();
     }
@@ -629,6 +664,9 @@
         document.getElementById('saleForm').reset();
         document.getElementById('saleError').classList.remove('show');
         document.getElementById('saleSuccess').classList.remove('show');
+        document.getElementById('sale-stock-hint').style.display = 'none';
+        document.getElementById('sale-qty-label').textContent   = 'Quantity Sold *';
+        document.getElementById('sale-price-label').textContent = 'Price Per Unit (LKR) *';
         clearAllFields(['sale-fuelType','sale-litres','sale-price','sale-date']);
         setTodayDates();
     }
@@ -640,7 +678,7 @@
         errEl.classList.remove('show'); sucEl.classList.remove('show');
 
         let valid = true;
-        if (!document.getElementById('sale-fuelType').value) { setFieldError('sale-fuelType','Select a fuel type.'); valid=false; } else setFieldValid('sale-fuelType');
+        if (!document.getElementById('sale-fuelType').value) { setFieldError('sale-fuelType','Select an item type.'); valid=false; } else setFieldValid('sale-fuelType');
         if (!document.getElementById('sale-litres').value || parseFloat(document.getElementById('sale-litres').value) <= 0) { setFieldError('sale-litres','Enter valid litres sold.'); valid=false; } else setFieldValid('sale-litres');
         if (!document.getElementById('sale-price').value || parseFloat(document.getElementById('sale-price').value) <= 0) { setFieldError('sale-price','Enter a valid price.'); valid=false; } else setFieldValid('sale-price');
         if (!document.getElementById('sale-date').value) { setFieldError('sale-date','Select a date.'); valid=false; } else setFieldValid('sale-date');

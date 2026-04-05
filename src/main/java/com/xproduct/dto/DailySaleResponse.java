@@ -15,6 +15,7 @@ public class DailySaleResponse {
     private String branchName;
     private Long fuelTypeId;
     private String fuelTypeName;
+    private String fuelTypeUnit;
     private BigDecimal litersSold;
     private BigDecimal pricePerLiter;
     private BigDecimal totalAmount;
@@ -36,6 +37,7 @@ public class DailySaleResponse {
         if (s.getFuelType() != null) {
             r.setFuelTypeId(s.getFuelType().getId());
             r.setFuelTypeName(s.getFuelType().getName());
+            r.setFuelTypeUnit(s.getFuelType().getUnit());
         }
         if (s.getRecordedBy() != null) {
             r.setRecordedByUsername(s.getRecordedBy().getUsername());

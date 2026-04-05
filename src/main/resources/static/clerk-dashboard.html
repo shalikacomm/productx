@@ -34,8 +34,14 @@
             <a onclick="showSection('grn', this)">
                 <span class="icon">&#128230;</span> GRN
             </a>
+            <a onclick="showSection('sales', this)">
+                <span class="icon">&#128200;</span> Daily Sales
+            </a>
             <a onclick="showSection('attendance', this)">
                 <span class="icon">&#128197;</span> Attendance
+            </a>
+            <a onclick="showSection('master', this)">
+                <span class="icon">&#128218;</span> Master Data
             </a>
         </nav>
         <div class="user-info">
@@ -119,6 +125,33 @@
             </div>
         </div>
 
+        <!-- Daily Sales -->
+        <div class="section-page" id="section-sales">
+            <div class="page-header">
+                <h2>Daily Sales</h2>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                    <select id="salesBranchFilter" onchange="loadClerkSales()" style="padding:8px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:13px">
+                        <option value="">Select Branch</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="openClerkSaleModal()">+ Record Sale</button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-body">
+                    <div style="overflow-x:auto">
+                    <table>
+                        <thead>
+                            <tr><th>Date</th><th>Item Type</th><th>Qty Sold</th><th>Price/Unit</th><th>Total (LKR)</th><th>Recorded By</th></tr>
+                        </thead>
+                        <tbody id="clerkSalesBody">
+                            <tr><td colspan="6" style="text-align:center;padding:20px;color:#999">Select a branch to view sales</td></tr>
+                        </tbody>
+                    </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Attendance -->
         <div class="section-page" id="section-attendance">
             <div class="page-header">
@@ -136,6 +169,31 @@
                         </thead>
                         <tbody id="attendanceBody">
                             <tr><td colspan="7" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Master Data -->
+        <div class="section-page" id="section-master">
+            <div class="page-header">
+                <h2>Master Data</h2>
+            </div>
+
+            <!-- Item Types -->
+            <div class="card">
+                <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+                    <h3>Item Types</h3>
+                    <button class="btn btn-primary" onclick="openItemTypeModal()">+ Add Item Type</button>
+                </div>
+                <div class="card-body">
+                    <div style="overflow-x:auto">
+                    <table>
+                        <thead><tr><th>#</th><th>Name</th><th>Code</th><th>Measuring Unit</th><th>Actions</th></tr></thead>
+                        <tbody id="itemTypeBody">
+                            <tr><td colspan="5" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
                         </tbody>
                     </table>
                     </div>
@@ -165,19 +223,19 @@
                     <span class="field-error" id="grn-branch-error"></span>
                 </div>
                 <div class="form-group">
-                    <label>Fuel Type *</label>
-                    <select id="grn-fuelType">
-                        <option value="">Select Fuel Type</option>
+                    <label>Item Type *</label>
+                    <select id="grn-fuelType" onchange="onGrnItemTypeChange(this.value)">
+                        <option value="">Select Item Type</option>
                     </select>
                     <span class="field-error" id="grn-fuelType-error"></span>
                 </div>
                 <div class="form-group">
-                    <label>Quantity (Litres) *</label>
+                    <label id="grn-qty-label">Quantity *</label>
                     <input type="number" id="grn-qty" step="0.01" min="0.01" placeholder="e.g. 5000">
                     <span class="field-error" id="grn-qty-error"></span>
                 </div>
                 <div class="form-group">
-                    <label>Price Per Litre (LKR) *</label>
+                    <label>Price Per Unit (LKR) *</label>
                     <input type="number" id="grn-price" step="0.01" min="0.01" placeholder="e.g. 320.50">
                     <span class="field-error" id="grn-price-error"></span>
                 </div>
@@ -199,6 +257,91 @@
         <div class="modal-footer">
             <button class="btn btn-secondary" onclick="closeGrnModal()">Cancel</button>
             <button class="btn btn-primary" onclick="submitGrn()">Save GRN</button>
+        </div>
+    </div>
+</div>
+
+<!-- Clerk Sale Modal -->
+<div class="modal-overlay" id="clerkSaleModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Record Daily Sale</h3>
+            <button class="modal-close" onclick="closeClerkSaleModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="alert alert-error"   id="clerkSaleError"></div>
+            <div class="alert alert-success" id="clerkSaleSuccess"></div>
+            <form id="clerkSaleForm" onsubmit="return false">
+                <div class="form-group">
+                    <label>Branch *</label>
+                    <select id="csale-branch">
+                        <option value="">Select Branch</option>
+                    </select>
+                    <span class="field-error" id="csale-branch-error"></span>
+                </div>
+                <div class="form-group">
+                    <label>Item Type *</label>
+                    <select id="csale-fuelType" onchange="onClerkSaleItemTypeChange(this.value)">
+                        <option value="">Select Item Type</option>
+                    </select>
+                    <span class="field-error" id="csale-fuelType-error"></span>
+                    <small id="csale-stock-hint" style="display:none;margin-top:4px;display:block"></small>
+                </div>
+                <div class="form-group">
+                    <label id="csale-qty-label">Quantity Sold *</label>
+                    <input type="number" id="csale-litres" step="0.01" min="0.01" placeholder="e.g. 1200">
+                    <span class="field-error" id="csale-litres-error"></span>
+                </div>
+                <div class="form-group">
+                    <label id="csale-price-label">Price Per Unit (LKR) *</label>
+                    <input type="number" id="csale-price" step="0.01" min="0.01" placeholder="e.g. 320.50">
+                    <span class="field-error" id="csale-price-error"></span>
+                </div>
+                <div class="form-group">
+                    <label>Sale Date *</label>
+                    <input type="date" id="csale-date">
+                    <span class="field-error" id="csale-date-error"></span>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeClerkSaleModal()">Cancel</button>
+            <button class="btn btn-primary"   onclick="submitClerkSale()">Record Sale</button>
+        </div>
+    </div>
+</div>
+
+<!-- Item Type Modal -->
+<div class="modal-overlay" id="itemTypeModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Add Item Type</h3>
+            <button class="modal-close" onclick="closeItemTypeModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="alert alert-error"   id="itemTypeError"></div>
+            <div class="alert alert-success" id="itemTypeSuccess"></div>
+            <form id="itemTypeForm" onsubmit="return false">
+                <div class="form-group">
+                    <label>Item Name *</label>
+                    <input type="text" id="it-name" placeholder="e.g. 92 Petrol, Engine Oil">
+                    <span class="field-error" id="it-name-error"></span>
+                </div>
+                <div class="form-group">
+                    <label>Code * <small style="color:#888">(unique, uppercase)</small></label>
+                    <input type="text" id="it-code" placeholder="e.g. PETROL_92, ENGINE_OIL" style="text-transform:uppercase">
+                    <span class="field-error" id="it-code-error"></span>
+                </div>
+                <div class="form-group">
+                    <label>Measuring Unit *</label>
+                    <input type="text" id="it-unit" placeholder="e.g. Litres, Kg, Units, Boxes">
+                    <span class="field-error" id="it-unit-error"></span>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeItemTypeModal()">Cancel</button>
+            <button class="btn btn-primary"   onclick="submitItemType()">Save</button>
         </div>
     </div>
 </div>
@@ -225,9 +368,11 @@
             renderGrnTable();
             populateBranchFilter();
             populateAttendanceBranchFilter();
+            populateSalesBranchFilter();
             populateModalSelects();
             document.getElementById('grn-date').value = new Date().toISOString().split('T')[0];
             renderAttendanceTable(allAttendance);
+            renderItemTypeTable();
         } catch(e) { console.error(e); }
     }
 
@@ -269,12 +414,21 @@
     }
 
     function populateModalSelects() {
-        document.getElementById('grn-branch').innerHTML =
-            '<option value="">Select Branch</option>' +
+        const branchOpts = '<option value="">Select Branch</option>' +
             branches.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
-        document.getElementById('grn-fuelType').innerHTML =
-            '<option value="">Select Fuel Type</option>' +
-            fuelTypes.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+        const itemOpts = '<option value="">Select Item Type</option>' +
+            fuelTypes.map(f => `<option value="${f.id}" data-unit="${f.unit}">${f.name} (${f.unit})</option>`).join('');
+
+        document.getElementById('grn-branch').innerHTML    = branchOpts;
+        document.getElementById('grn-fuelType').innerHTML  = itemOpts;
+        document.getElementById('csale-fuelType').innerHTML = itemOpts;
+    }
+
+    function onGrnItemTypeChange(val) {
+        const sel  = document.getElementById('grn-fuelType');
+        const opt  = sel.options[sel.selectedIndex];
+        const unit = val ? (opt.dataset.unit || 'Units') : 'Units';
+        document.getElementById('grn-qty-label').textContent = `Quantity (${unit}) *`;
     }
 
     async function filterStock() {
@@ -324,6 +478,153 @@
         renderAttendanceTable(filtered);
     }
 
+    // ---- Clerk Daily Sales ----
+
+    function populateSalesBranchFilter() {
+        const opts = '<option value="">Select Branch</option>' +
+            branches.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+        document.getElementById('salesBranchFilter').innerHTML = opts;
+        document.getElementById('csale-branch').innerHTML = opts;
+    }
+
+    async function loadClerkSales() {
+        const branchId = document.getElementById('salesBranchFilter').value;
+        if (!branchId) return;
+        try {
+            const sales = await getSalesByBranch(branchId);
+            document.getElementById('clerkSalesBody').innerHTML = sales.length === 0
+                ? '<tr><td colspan="6" style="text-align:center;padding:20px;color:#999">No sales recorded for this branch</td></tr>'
+                : sales.map(s => `<tr>
+                    <td>${s.saleDate}</td>
+                    <td>${s.fuelTypeName}</td>
+                    <td>${Number(s.litersSold).toFixed(2)} ${s.fuelTypeUnit || ''}</td>
+                    <td>LKR ${Number(s.pricePerLiter).toFixed(2)}</td>
+                    <td>LKR ${Number(s.totalAmount).toLocaleString()}</td>
+                    <td>${s.recordedByUsername || '-'}</td>
+                </tr>`).join('');
+        } catch(e) { console.error(e); }
+    }
+
+    function onClerkSaleItemTypeChange(val) {
+        const sel  = document.getElementById('csale-fuelType');
+        const opt  = sel.options[sel.selectedIndex];
+        const unit = val ? (opt.dataset.unit || 'Units') : 'Units';
+        const hint = document.getElementById('csale-stock-hint');
+        document.getElementById('csale-qty-label').textContent   = `Qty Sold (${unit}) *`;
+        document.getElementById('csale-price-label').textContent = `Price Per ${unit} (LKR) *`;
+        hint.style.display = 'none';
+    }
+
+    function openClerkSaleModal() {
+        document.getElementById('clerkSaleModal').classList.add('active');
+        document.getElementById('clerkSaleForm').reset();
+        document.getElementById('clerkSaleError').classList.remove('show');
+        document.getElementById('clerkSaleSuccess').classList.remove('show');
+        document.getElementById('csale-stock-hint').style.display = 'none';
+        document.getElementById('csale-qty-label').textContent   = 'Quantity Sold *';
+        document.getElementById('csale-price-label').textContent = 'Price Per Unit (LKR) *';
+        // Pre-select branch if one is already chosen in the filter
+        const branchId = document.getElementById('salesBranchFilter').value;
+        if (branchId) document.getElementById('csale-branch').value = branchId;
+        document.getElementById('csale-date').value = new Date().toISOString().split('T')[0];
+        clearAllFields(['csale-branch','csale-fuelType','csale-litres','csale-price','csale-date']);
+    }
+    function closeClerkSaleModal() { document.getElementById('clerkSaleModal').classList.remove('active'); }
+
+    async function submitClerkSale() {
+        const errEl = document.getElementById('clerkSaleError');
+        const sucEl = document.getElementById('clerkSaleSuccess');
+        errEl.classList.remove('show'); sucEl.classList.remove('show');
+
+        let valid = true;
+        if (!document.getElementById('csale-branch').value)   { setFieldError('csale-branch','Select a branch.'); valid=false; }    else setFieldValid('csale-branch');
+        if (!document.getElementById('csale-fuelType').value) { setFieldError('csale-fuelType','Select an item type.'); valid=false; } else setFieldValid('csale-fuelType');
+        if (!document.getElementById('csale-litres').value || parseFloat(document.getElementById('csale-litres').value) <= 0) { setFieldError('csale-litres','Enter a valid quantity.'); valid=false; } else setFieldValid('csale-litres');
+        if (!document.getElementById('csale-price').value || parseFloat(document.getElementById('csale-price').value) <= 0)  { setFieldError('csale-price','Enter a valid price.'); valid=false; }    else setFieldValid('csale-price');
+        if (!document.getElementById('csale-date').value)     { setFieldError('csale-date','Select a date.'); valid=false; }         else setFieldValid('csale-date');
+        if (!valid) return;
+
+        const payload = {
+            branchId:      parseInt(document.getElementById('csale-branch').value),
+            fuelTypeId:    parseInt(document.getElementById('csale-fuelType').value),
+            litersSold:    parseFloat(document.getElementById('csale-litres').value),
+            pricePerLiter: parseFloat(document.getElementById('csale-price').value),
+            saleDate:      document.getElementById('csale-date').value,
+        };
+
+        try {
+            await recordDailySale(payload);
+            sucEl.textContent = 'Sale recorded successfully!';
+            sucEl.classList.add('show');
+            document.getElementById('clerkSaleForm').reset();
+            document.getElementById('csale-date').value = new Date().toISOString().split('T')[0];
+            loadClerkSales();
+        } catch(e) { errEl.textContent = e.message; errEl.classList.add('show'); }
+    }
+
+    // ---- Item Type (Master Data) ----
+
+    function renderItemTypeTable() {
+        document.getElementById('itemTypeBody').innerHTML = fuelTypes.length === 0
+            ? '<tr><td colspan="5" style="text-align:center;padding:20px;color:#999">No item types defined</td></tr>'
+            : fuelTypes.map((f, i) => `<tr>
+                <td>${i + 1}</td>
+                <td><strong>${f.name}</strong></td>
+                <td><code>${f.code}</code></td>
+                <td>${f.unit}</td>
+                <td><button class="btn btn-danger" style="padding:4px 12px;font-size:12px" onclick="doDeactivateItemType(${f.id}, '${f.name}')">Remove</button></td>
+            </tr>`).join('');
+    }
+
+    function openItemTypeModal() {
+        document.getElementById('itemTypeModal').classList.add('active');
+        document.getElementById('itemTypeForm').reset();
+        document.getElementById('itemTypeError').classList.remove('show');
+        document.getElementById('itemTypeSuccess').classList.remove('show');
+        clearAllFields(['it-name','it-code','it-unit']);
+    }
+    function closeItemTypeModal() {
+        document.getElementById('itemTypeModal').classList.remove('active');
+    }
+
+    async function submitItemType() {
+        const errEl = document.getElementById('itemTypeError');
+        const sucEl = document.getElementById('itemTypeSuccess');
+        errEl.classList.remove('show'); sucEl.classList.remove('show');
+
+        let valid = true;
+        const name = document.getElementById('it-name').value.trim();
+        const code = document.getElementById('it-code').value.trim().toUpperCase();
+        const unit = document.getElementById('it-unit').value.trim();
+
+        if (!name) { setFieldError('it-name', 'Item name is required.'); valid = false; } else setFieldValid('it-name');
+        if (!code) { setFieldError('it-code', 'Code is required.'); valid = false; }
+        else if (!/^[A-Z0-9_]+$/.test(code)) { setFieldError('it-code', 'Code must be uppercase letters, numbers or underscores.'); valid = false; }
+        else setFieldValid('it-code');
+        if (!unit) { setFieldError('it-unit', 'Measuring unit is required.'); valid = false; } else setFieldValid('it-unit');
+        if (!valid) return;
+
+        try {
+            await createItemType({ name, code, unit });
+            sucEl.textContent = 'Item type added successfully!';
+            sucEl.classList.add('show');
+            document.getElementById('itemTypeForm').reset();
+            fuelTypes = await getFuelTypes();
+            renderItemTypeTable();
+            populateModalSelects();
+        } catch(e) { errEl.textContent = e.message; errEl.classList.add('show'); }
+    }
+
+    async function doDeactivateItemType(id, name) {
+        if (!confirm(`Remove item type "${name}"? It will no longer appear in GRN forms.`)) return;
+        try {
+            await deactivateItemType(id);
+            fuelTypes = await getFuelTypes();
+            renderItemTypeTable();
+            populateModalSelects();
+        } catch(e) { alert(e.message); }
+    }
+
     function showSection(name, el) {
         document.querySelectorAll('.section-page').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active'));
@@ -337,6 +638,7 @@
         document.getElementById('grnForm').reset();
         document.getElementById('grnError').classList.remove('show');
         document.getElementById('grnSuccess').classList.remove('show');
+        document.getElementById('grn-qty-label').textContent = 'Quantity *';
         clearAllFields(['grn-branch','grn-fuelType','grn-qty','grn-price','grn-date']);
         document.getElementById('grn-date').value = new Date().toISOString().split('T')[0];
     }
@@ -349,7 +651,7 @@
 
         let valid = true;
         if (!document.getElementById('grn-branch').value)   { setFieldError('grn-branch','Select a branch.'); valid=false; }    else setFieldValid('grn-branch');
-        if (!document.getElementById('grn-fuelType').value) { setFieldError('grn-fuelType','Select a fuel type.'); valid=false; } else setFieldValid('grn-fuelType');
+        if (!document.getElementById('grn-fuelType').value) { setFieldError('grn-fuelType','Select an item type.'); valid=false; } else setFieldValid('grn-fuelType');
         if (!document.getElementById('grn-qty').value || parseFloat(document.getElementById('grn-qty').value) <= 0) { setFieldError('grn-qty','Enter a valid quantity.'); valid=false; } else setFieldValid('grn-qty');
         if (!document.getElementById('grn-price').value || parseFloat(document.getElementById('grn-price').value) <= 0) { setFieldError('grn-price','Enter a valid price.'); valid=false; } else setFieldValid('grn-price');
         if (!document.getElementById('grn-date').value)     { setFieldError('grn-date','Select a date.'); valid=false; }         else setFieldValid('grn-date');

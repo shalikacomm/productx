@@ -10,6 +10,8 @@ import java.time.LocalDate;
 @Data
 public class CreateDailySaleRequest {
 
+    private Long branchId; // required for CLERK, ignored for MANAGER (auto-resolved)
+
     @NotNull
     private Long fuelTypeId;
 

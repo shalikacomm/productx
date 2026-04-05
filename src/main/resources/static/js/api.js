@@ -75,9 +75,17 @@ async function getBranches() {
     return apiFetch('/branches');
 }
 
-// Fuel Types
+// Item Types (fuel-types)
 async function getFuelTypes() {
     return apiFetch('/fuel-types');
+}
+
+async function createItemType(payload) {
+    return apiFetch('/fuel-types', { method: 'POST', body: JSON.stringify(payload) });
+}
+
+async function deactivateItemType(id) {
+    return apiFetch('/fuel-types/' + id, { method: 'DELETE' });
 }
 
 // GRN

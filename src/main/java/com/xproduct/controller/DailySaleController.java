@@ -21,7 +21,7 @@ public class DailySaleController {
     private final DailySaleService dailySaleService;
 
     @PostMapping
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'CLERK')")
     public ResponseEntity<DailySaleResponse> recordSale(@Valid @RequestBody CreateDailySaleRequest request,
                                                          Authentication auth) {
         return ResponseEntity.status(HttpStatus.CREATED).body(dailySaleService.recordSale(request, auth.getName()));

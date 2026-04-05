@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface FuelTypeRepository extends JpaRepository<FuelType, Long> {
     List<FuelType> findByActiveTrue();
+    boolean existsByCode(String code);
 }

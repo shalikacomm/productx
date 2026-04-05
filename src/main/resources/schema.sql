@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS fuel_types (
     id     BIGINT AUTO_INCREMENT PRIMARY KEY,
     name   VARCHAR(50) NOT NULL,
     code   VARCHAR(20) UNIQUE NOT NULL,
+    unit   VARCHAR(50) NOT NULL DEFAULT 'Litres',
     active BOOLEAN DEFAULT TRUE
 );
 
@@ -111,12 +112,12 @@ INSERT IGNORE INTO branches (name, location, code) VALUES
 ('Branch Gamma', 'Location C', 'BR-GAMMA');
 
 -- 5 Fuel Types
-INSERT IGNORE INTO fuel_types (name, code) VALUES
-('92 Petrol',    'PETROL_92'),
-('95 Petrol',    'PETROL_95'),
-('Auto Diesel',  'DIESEL_AUTO'),
-('Super Diesel', 'DIESEL_SUPER'),
-('Kerosene',     'KEROSENE');
+INSERT IGNORE INTO fuel_types (name, code, unit) VALUES
+('92 Petrol',    'PETROL_92',    'Litres'),
+('95 Petrol',    'PETROL_95',    'Litres'),
+('Auto Diesel',  'DIESEL_AUTO',  'Litres'),
+('Super Diesel', 'DIESEL_SUPER', 'Litres'),
+('Kerosene',     'KEROSENE',     'Litres');
 
 -- =============================================
 -- ATTENDANCE TABLE

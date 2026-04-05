@@ -40,6 +40,9 @@
             <a onclick="showSection('sales', this)">
                 <span class="icon">&#128200;</span> Daily Sales
             </a>
+            <a onclick="showSection('reports', this)">
+                <span class="icon">&#128202;</span> Reports
+            </a>
             <a onclick="showSection('users', this)">
                 <span class="icon">&#128100;</span> Users
             </a>
@@ -180,6 +183,111 @@
                     </table>
                 </div>
             </div>
+        </div>
+
+        <!-- Reports -->
+        <div class="section-page" id="section-reports">
+            <div class="page-header"><h2>Sales &amp; Profit Reports</h2></div>
+
+            <!-- Filters -->
+            <div class="card" style="margin-bottom:20px">
+                <div class="card-body">
+                    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+                        <div class="form-group" style="margin:0;flex:1;min-width:140px">
+                            <label>Period</label>
+                            <select id="rpt-type" onchange="onReportTypeChange()">
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly" selected>Monthly</option>
+                                <option value="yearly">Yearly</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin:0;flex:1;min-width:140px" id="rpt-date-group">
+                            <label id="rpt-date-label">Date</label>
+                            <input type="date" id="rpt-date">
+                        </div>
+                        <div class="form-group" style="margin:0;flex:1;min-width:120px" id="rpt-month-group" style="display:none">
+                            <label>Month</label>
+                            <select id="rpt-month">
+                                <option value="1">January</option><option value="2">February</option>
+                                <option value="3">March</option><option value="4">April</option>
+                                <option value="5">May</option><option value="6">June</option>
+                                <option value="7">July</option><option value="8">August</option>
+                                <option value="9">September</option><option value="10">October</option>
+                                <option value="11">November</option><option value="12">December</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin:0;flex:1;min-width:100px" id="rpt-year-group" style="display:none">
+                            <label>Year</label>
+                            <input type="number" id="rpt-year" value="2026" min="2020" max="2099" style="width:100%">
+                        </div>
+                        <div class="form-group" style="margin:0;flex:1;min-width:160px">
+                            <label>Branch</label>
+                            <select id="rpt-branch">
+                                <option value="">All Branches</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" onclick="loadReport()">Generate Report</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="stats-row" id="rpt-summary" style="display:none">
+                <div class="stat-card">
+                    <div class="icon icon-blue">&#128200;</div>
+                    <div class="info">
+                        <div class="value" id="rpt-revenue">-</div>
+                        <div class="label">Total Revenue</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon icon-red">&#128230;</div>
+                    <div class="info">
+                        <div class="value" id="rpt-cost">-</div>
+                        <div class="label">Purchase Cost</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon icon-blue">&#128176;</div>
+                    <div class="info">
+                        <div class="value" id="rpt-profit">-</div>
+                        <div class="label">Gross Profit</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Item-wise Breakdown -->
+            <div class="card" id="rpt-items-card" style="display:none;margin-bottom:20px">
+                <div class="card-header"><h3 id="rpt-period-label">Item-wise Breakdown</h3></div>
+                <div class="card-body">
+                    <div style="overflow-x:auto">
+                    <table>
+                        <thead>
+                            <tr><th>Item Type</th><th>Qty Purchased</th><th>Avg Purchase Price</th><th>Purchase Cost (LKR)</th><th>Qty Sold</th><th>Avg Selling Price</th><th>Revenue (LKR)</th><th>Profit (LKR)</th></tr>
+                        </thead>
+                        <tbody id="rpt-items-body"></tbody>
+                    </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Branch-wise Breakdown -->
+            <div class="card" id="rpt-branches-card" style="display:none">
+                <div class="card-header"><h3>Branch-wise Summary</h3></div>
+                <div class="card-body">
+                    <div style="overflow-x:auto">
+                    <table>
+                        <thead>
+                            <tr><th>Branch</th><th>Revenue (LKR)</th><th>Purchase Cost (LKR)</th><th>Profit (LKR)</th></tr>
+                        </thead>
+                        <tbody id="rpt-branches-body"></tbody>
+                    </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="rpt-empty" style="display:none;text-align:center;padding:40px;color:#aaa">No data for selected period.</div>
         </div>
 
         <!-- Users Section -->
@@ -356,6 +464,13 @@
             renderAllUsersTable();
             populateBranchSelect();
             populateStockBranchFilter();
+            populateReportBranchFilter();
+            // Set report defaults
+            const now = new Date();
+            document.getElementById('rpt-date').value  = now.toISOString().split('T')[0];
+            document.getElementById('rpt-month').value = now.getMonth() + 1;
+            document.getElementById('rpt-year').value  = now.getFullYear();
+            onReportTypeChange();
         } catch (e) { console.error(e); }
     }
 
@@ -387,6 +502,111 @@
                 </tr>`).join('');
         document.getElementById('allUsersTableBody').innerHTML = rows;
         document.getElementById('usersTableBody').innerHTML    = rows;
+    }
+
+    // ---- Reports ----
+
+    function populateReportBranchFilter() {
+        document.getElementById('rpt-branch').innerHTML =
+            '<option value="">All Branches</option>' +
+            branches.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+    }
+
+    function onReportTypeChange() {
+        const type = document.getElementById('rpt-type').value;
+        const dateG  = document.getElementById('rpt-date-group');
+        const monthG = document.getElementById('rpt-month-group');
+        const yearG  = document.getElementById('rpt-year-group');
+        const label  = document.getElementById('rpt-date-label');
+
+        dateG.style.display  = 'none';
+        monthG.style.display = 'none';
+        yearG.style.display  = 'none';
+
+        if (type === 'daily')   { dateG.style.display = 'block'; label.textContent = 'Date'; }
+        if (type === 'weekly')  { dateG.style.display = 'block'; label.textContent = 'Week Starting'; }
+        if (type === 'monthly') { monthG.style.display = 'block'; yearG.style.display = 'block'; }
+        if (type === 'yearly')  { yearG.style.display = 'block'; }
+    }
+
+    function fmt(val) {
+        return 'LKR ' + Number(val || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function profitColor(val) {
+        return Number(val) >= 0 ? 'color:#27ae60;font-weight:700' : 'color:#e94560;font-weight:700';
+    }
+
+    async function loadReport() {
+        const type     = document.getElementById('rpt-type').value;
+        const branchId = document.getElementById('rpt-branch').value || null;
+        const today    = new Date().toISOString().split('T')[0];
+
+        const params = { type, branchId };
+
+        if (type === 'daily' || type === 'weekly') {
+            params.date = document.getElementById('rpt-date').value || today;
+        }
+        if (type === 'monthly' || type === 'yearly') {
+            params.year = document.getElementById('rpt-year').value;
+        }
+        if (type === 'monthly') {
+            params.month = document.getElementById('rpt-month').value;
+        }
+
+        try {
+            const r = await getReport(params);
+
+            // Summary
+            document.getElementById('rpt-revenue').textContent = fmt(r.totalRevenue);
+            document.getElementById('rpt-cost').textContent    = fmt(r.totalPurchaseCost);
+            const profitEl = document.getElementById('rpt-profit');
+            profitEl.textContent = fmt(r.grossProfit);
+            profitEl.style.cssText = profitColor(r.grossProfit);
+            document.getElementById('rpt-summary').style.display = '';
+            document.getElementById('rpt-period-label').textContent = 'Item-wise — ' + r.periodLabel;
+
+            const hasData = (r.items && r.items.length > 0) || (r.branches && r.branches.length > 0);
+            document.getElementById('rpt-empty').style.display = hasData ? 'none' : 'block';
+
+            // Items table
+            if (r.items && r.items.length > 0) {
+                document.getElementById('rpt-items-card').style.display = '';
+                document.getElementById('rpt-items-body').innerHTML = r.items.map(i => `<tr>
+                    <td><strong>${i.itemName}</strong><br><small style="color:#888">${i.unit}</small></td>
+                    <td>${Number(i.qtyPurchased||0).toFixed(2)} ${i.unit}</td>
+                    <td>LKR ${Number(i.avgPurchasePrice||0).toFixed(2)}</td>
+                    <td>${fmt(i.purchaseCost)}</td>
+                    <td>${Number(i.qtySold||0).toFixed(2)} ${i.unit}</td>
+                    <td>LKR ${Number(i.avgSellingPrice||0).toFixed(2)}</td>
+                    <td>${fmt(i.revenue)}</td>
+                    <td style="${profitColor(i.profit)}">${fmt(i.profit)}</td>
+                </tr>`).join('') +
+                `<tr style="background:#f8f9fa;font-weight:700">
+                    <td>TOTAL</td><td></td><td></td>
+                    <td>${fmt(r.totalPurchaseCost)}</td>
+                    <td></td><td></td>
+                    <td>${fmt(r.totalRevenue)}</td>
+                    <td style="${profitColor(r.grossProfit)}">${fmt(r.grossProfit)}</td>
+                </tr>`;
+            } else {
+                document.getElementById('rpt-items-card').style.display = 'none';
+            }
+
+            // Branch summary (only for all-branch)
+            if (r.branches && r.branches.length > 0) {
+                document.getElementById('rpt-branches-card').style.display = '';
+                document.getElementById('rpt-branches-body').innerHTML = r.branches.map(b => `<tr>
+                    <td><strong>${b.branchName}</strong></td>
+                    <td>${fmt(b.revenue)}</td>
+                    <td>${fmt(b.purchaseCost)}</td>
+                    <td style="${profitColor(b.profit)}">${fmt(b.profit)}</td>
+                </tr>`).join('');
+            } else {
+                document.getElementById('rpt-branches-card').style.display = 'none';
+            }
+
+        } catch(e) { alert('Failed to load report: ' + e.message); }
     }
 
     function showSection(name, el) {

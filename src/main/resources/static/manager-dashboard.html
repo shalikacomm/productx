@@ -234,7 +234,7 @@
                     <span class="field-error" id="grn-qty-error"></span>
                 </div>
                 <div class="form-group">
-                    <label>Price Per Unit (LKR) *</label>
+                    <label>Purchase Price Per Unit (LKR) *</label>
                     <input type="number" id="grn-price" step="0.01" min="0.01" placeholder="e.g. 320.50">
                     <span class="field-error" id="grn-price-error"></span>
                 </div>
@@ -285,7 +285,7 @@
                     <span class="field-error" id="sale-litres-error"></span>
                 </div>
                 <div class="form-group">
-                    <label id="sale-price-label">Price Per Unit (LKR) *</label>
+                    <label id="sale-price-label">Selling Price Per Unit (LKR) *</label>
                     <input type="number" id="sale-price" step="0.01" min="0.01" placeholder="e.g. 320.50">
                     <span class="field-error" id="sale-price-error"></span>
                 </div>
@@ -485,7 +485,7 @@
         const unit   = val ? (opt.dataset.unit || 'Units') : 'Units';
         const hint   = document.getElementById('sale-stock-hint');
         document.getElementById('sale-qty-label').textContent   = `Qty Sold (${unit}) *`;
-        document.getElementById('sale-price-label').textContent = `Price Per ${unit} (LKR) *`;
+        document.getElementById('sale-price-label').textContent = `Selling Price Per ${unit} (LKR) *`;
 
         // Show available stock
         if (val && branchStock.length) {
@@ -666,7 +666,7 @@
         document.getElementById('saleSuccess').classList.remove('show');
         document.getElementById('sale-stock-hint').style.display = 'none';
         document.getElementById('sale-qty-label').textContent   = 'Quantity Sold *';
-        document.getElementById('sale-price-label').textContent = 'Price Per Unit (LKR) *';
+        document.getElementById('sale-price-label').textContent = 'Selling Price Per Unit (LKR) *';
         clearAllFields(['sale-fuelType','sale-litres','sale-price','sale-date']);
         setTodayDates();
     }

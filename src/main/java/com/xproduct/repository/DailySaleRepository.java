@@ -10,4 +10,5 @@ public interface DailySaleRepository extends JpaRepository<DailySale, Long> {
     List<DailySale> findByBranchIdOrderBySaleDateDesc(Long branchId);
     List<DailySale> findByBranchIdAndSaleDateBetweenOrderBySaleDateDesc(Long branchId, LocalDate from, LocalDate to);
     List<DailySale> findAllByOrderBySaleDateDesc();
+    List<DailySale> findBySaleDateBetweenOrderBySaleDateDesc(LocalDate from, LocalDate to);
 }

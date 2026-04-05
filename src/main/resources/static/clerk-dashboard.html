@@ -235,7 +235,7 @@
                     <span class="field-error" id="grn-qty-error"></span>
                 </div>
                 <div class="form-group">
-                    <label>Price Per Unit (LKR) *</label>
+                    <label>Purchase Price Per Unit (LKR) *</label>
                     <input type="number" id="grn-price" step="0.01" min="0.01" placeholder="e.g. 320.50">
                     <span class="field-error" id="grn-price-error"></span>
                 </div>
@@ -293,7 +293,7 @@
                     <span class="field-error" id="csale-litres-error"></span>
                 </div>
                 <div class="form-group">
-                    <label id="csale-price-label">Price Per Unit (LKR) *</label>
+                    <label id="csale-price-label">Selling Price Per Unit (LKR) *</label>
                     <input type="number" id="csale-price" step="0.01" min="0.01" placeholder="e.g. 320.50">
                     <span class="field-error" id="csale-price-error"></span>
                 </div>
@@ -522,7 +522,7 @@
         document.getElementById('clerkSaleSuccess').classList.remove('show');
         document.getElementById('csale-stock-hint').style.display = 'none';
         document.getElementById('csale-qty-label').textContent   = 'Quantity Sold *';
-        document.getElementById('csale-price-label').textContent = 'Price Per Unit (LKR) *';
+        document.getElementById('csale-price-label').textContent = 'Selling Price Per Unit (LKR) *';
         // Pre-select branch if one is already chosen in the filter
         const branchId = document.getElementById('salesBranchFilter').value;
         if (branchId) document.getElementById('csale-branch').value = branchId;

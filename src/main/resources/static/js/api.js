@@ -155,6 +155,12 @@ async function getMyAttendance() {
     return apiFetch('/attendance/my');
 }
 
+// Reports
+async function getReport(params) {
+    const qs = new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([,v]) => v != null && v !== ''))).toString();
+    return apiFetch('/reports?' + qs);
+}
+
 // Daily Sales
 async function recordDailySale(payload) {
     return apiFetch('/sales', { method: 'POST', body: JSON.stringify(payload) });

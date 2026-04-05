@@ -25,19 +25,22 @@ public class Attendance {
     private Branch branch;
 
     @Column(nullable = false)
-    private LocalDateTime loginTime;
+    private LocalDateTime clockIn;
 
-    private LocalDateTime logoutTime;
+    private LocalDateTime clockOut;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private AttendanceStatus status = AttendanceStatus.PENDING;
+    private AttendanceStatus status = AttendanceStatus.CLOCK_IN_PENDING;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "approved_by")
     private User approvedBy;
 
     private LocalDateTime approvedAt;
+
+    @Column(length = 500)
+    private String rejectionNote;
 
     @CreationTimestamp
     @Column(updatable = false)

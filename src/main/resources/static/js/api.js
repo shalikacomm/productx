@@ -103,6 +103,10 @@ async function getStockByBranch(branchId) {
 }
 
 // Attendance
+async function getAllAttendance() {
+    return apiFetch('/attendance');
+}
+
 async function getPendingAttendance() {
     return apiFetch('/attendance/pending');
 }
@@ -115,8 +119,28 @@ async function approveAttendance(id) {
     return apiFetch('/attendance/' + id + '/approve', { method: 'PUT' });
 }
 
-async function rejectAttendance(id) {
-    return apiFetch('/attendance/' + id + '/reject', { method: 'PUT' });
+async function rejectAttendance(id, note) {
+    return apiFetch('/attendance/' + id + '/reject', {
+        method: 'PUT',
+        body: JSON.stringify({ note: note || '' })
+    });
+}
+
+async function clockIn() {
+    return apiFetch('/attendance/clock-in', { method: 'POST' });
+}
+
+async function clockOut() {
+    return apiFetch('/attendance/clock-out', { method: 'PUT' });
+}
+
+async function getMyActiveSession() {
+    const res = await fetch(API_BASE + '/attendance/my/active', {
+        headers: { 'Authorization': 'Bearer ' + getToken() }
+    });
+    if (res.status === 401) { localStorage.clear(); window.location.href = '/login.html'; return; }
+    if (res.status === 204) return null;
+    return res.json();
 }
 
 async function getMyAttendance() {

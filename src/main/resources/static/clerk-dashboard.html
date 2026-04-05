@@ -34,6 +34,9 @@
             <a onclick="showSection('grn', this)">
                 <span class="icon">&#128230;</span> GRN
             </a>
+            <a onclick="showSection('attendance', this)">
+                <span class="icon">&#128197;</span> Attendance
+            </a>
         </nav>
         <div class="user-info">
             <div class="name" id="sidebarName">-</div>
@@ -116,6 +119,30 @@
             </div>
         </div>
 
+        <!-- Attendance -->
+        <div class="section-page" id="section-attendance">
+            <div class="page-header">
+                <h2>Attendance Records</h2>
+                <select id="attBranchFilter" onchange="filterAttendance()" style="padding:8px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:13px">
+                    <option value="">All Branches</option>
+                </select>
+            </div>
+            <div class="card">
+                <div class="card-body">
+                    <div style="overflow-x:auto">
+                    <table>
+                        <thead>
+                            <tr><th>Attendant</th><th>Branch</th><th>Clock In</th><th>Clock Out</th><th>Status</th><th>Approved By</th><th>Note</th></tr>
+                        </thead>
+                        <tbody id="attendanceBody">
+                            <tr><td colspan="7" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </main>
 </div>
 
@@ -184,12 +211,12 @@
     document.getElementById('topbarUser').textContent  = currentUser.fullName;
     document.getElementById('branchLabel').textContent = currentUser.branchName || 'Clerk Panel';
 
-    let branches = [], fuelTypes = [], allStock = [], allGrns = [];
+    let branches = [], fuelTypes = [], allStock = [], allGrns = [], allAttendance = [];
 
     async function init() {
         try {
-            [branches, fuelTypes, allStock, allGrns] = await Promise.all([
-                getBranches(), getFuelTypes(), getAllStock(), getAllGrns()
+            [branches, fuelTypes, allStock, allGrns, allAttendance] = await Promise.all([
+                getBranches(), getFuelTypes(), getAllStock(), getAllGrns(), getAllAttendance()
             ]);
             document.getElementById('stat-grns').textContent     = allGrns.length;
             document.getElementById('stat-branches').textContent = branches.length;
@@ -197,8 +224,10 @@
             renderStockTable(allStock, 'stockBody', 4);
             renderGrnTable();
             populateBranchFilter();
+            populateAttendanceBranchFilter();
             populateModalSelects();
             document.getElementById('grn-date').value = new Date().toISOString().split('T')[0];
+            renderAttendanceTable(allAttendance);
         } catch(e) { console.error(e); }
     }
 
@@ -252,6 +281,47 @@
         const branchId = document.getElementById('stockBranchFilter').value;
         const data = branchId ? await getStockByBranch(branchId) : allStock;
         renderStockTable(data, 'stockBody', 4);
+    }
+
+    function fmtTime(dt) { return dt ? new Date(dt).toLocaleString() : '-'; }
+
+    function attStatusBadge(status) {
+        const map = {
+            CLOCK_IN_PENDING:  'badge-attendant',
+            CLOCKED_IN:        'badge-clerk',
+            CLOCK_OUT_PENDING: 'badge-attendant',
+            COMPLETED:         'badge-manager',
+            REJECTED:          'badge-admin'
+        };
+        return `<span class="badge ${map[status] || ''}">${status.replace(/_/g,' ')}</span>`;
+    }
+
+    function populateAttendanceBranchFilter() {
+        document.getElementById('attBranchFilter').innerHTML =
+            '<option value="">All Branches</option>' +
+            branches.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+    }
+
+    function renderAttendanceTable(list) {
+        document.getElementById('attendanceBody').innerHTML = !list || list.length === 0
+            ? '<tr><td colspan="7" style="text-align:center;padding:20px;color:#999">No records</td></tr>'
+            : list.map(a => `<tr>
+                <td>${a.attendantName}<br><small style="color:#888">${a.attendantUsername}</small></td>
+                <td>${a.branchName || '-'}</td>
+                <td>${fmtTime(a.clockIn)}</td>
+                <td>${fmtTime(a.clockOut)}</td>
+                <td>${attStatusBadge(a.status)}</td>
+                <td>${a.approvedByUsername || '-'}</td>
+                <td style="color:#c0392b;font-size:13px">${a.rejectionNote || ''}</td>
+            </tr>`).join('');
+    }
+
+    function filterAttendance() {
+        const branchId = document.getElementById('attBranchFilter').value;
+        const filtered = branchId
+            ? allAttendance.filter(a => String(a.branchId) === branchId)
+            : allAttendance;
+        renderAttendanceTable(filtered);
     }
 
     function showSection(name, el) {

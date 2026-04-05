@@ -156,14 +156,16 @@
             <div class="page-header"><h2>Pending Approvals</h2></div>
             <div class="card">
                 <div class="card-body">
+                    <div style="overflow-x:auto">
                     <table>
                         <thead>
-                            <tr><th>Attendant</th><th>Login Time</th><th>Actions</th></tr>
+                            <tr><th>Attendant</th><th>Request Type</th><th>Clock In</th><th>Clock Out</th><th>Actions</th></tr>
                         </thead>
                         <tbody id="pendingBody">
-                            <tr><td colspan="3" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
+                            <tr><td colspan="5" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
                         </tbody>
                     </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -173,14 +175,16 @@
             <div class="page-header"><h2>Attendance History</h2></div>
             <div class="card">
                 <div class="card-body">
+                    <div style="overflow-x:auto">
                     <table>
                         <thead>
-                            <tr><th>Attendant</th><th>Login Time</th><th>Status</th><th>Approved By</th><th>Approved At</th></tr>
+                            <tr><th>Attendant</th><th>Clock In</th><th>Clock Out</th><th>Status</th><th>Approved By</th><th>Approved At</th><th>Note</th></tr>
                         </thead>
                         <tbody id="attendanceBody">
-                            <tr><td colspan="5" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
+                            <tr><td colspan="7" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
                         </tbody>
                     </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -342,6 +346,28 @@
     </div>
 </div>
 
+<!-- Reject Attendance Modal -->
+<div class="modal-overlay" id="rejectModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Reject Attendance Request</h3>
+            <button class="modal-close" onclick="closeRejectModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p style="margin-bottom:12px;color:#555">Please provide a reason for rejection. The attendant will see this note.</p>
+            <div class="form-group">
+                <label>Rejection Note <span style="color:#e94560">*</span></label>
+                <textarea id="rejectNoteInput" rows="3" placeholder="e.g. Late clock-in, please see manager" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;resize:vertical;font-size:14px"></textarea>
+                <small id="rejectNoteError" style="color:#e94560;display:none">Please enter a rejection reason.</small>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeRejectModal()">Cancel</button>
+            <button class="btn btn-danger" onclick="submitReject()">Reject</button>
+        </div>
+    </div>
+</div>
+
 <script src="/js/api.js"></script>
 <script>
     const currentUser = getUser();
@@ -445,8 +471,14 @@
     }
 
     function statusBadge(status) {
-        const map = { PENDING: 'badge-attendant', APPROVED: 'badge-clerk', REJECTED: 'badge-admin' };
-        return `<span class="badge ${map[status] || ''}">${status}</span>`;
+        const map = {
+            CLOCK_IN_PENDING:  'badge-attendant',
+            CLOCKED_IN:        'badge-clerk',
+            CLOCK_OUT_PENDING: 'badge-attendant',
+            COMPLETED:         'badge-manager',
+            REJECTED:          'badge-admin'
+        };
+        return `<span class="badge ${map[status] || ''}">${status.replace(/_/g,' ')}</span>`;
     }
 
     function updatePendingBadge() {
@@ -459,17 +491,26 @@
         }
     }
 
+    function fmtTime(dt) { return dt ? new Date(dt).toLocaleString() : '-'; }
+
     function renderPending() {
         document.getElementById('pendingBody').innerHTML = pendingList.length === 0
-            ? '<tr><td colspan="3" style="text-align:center;padding:20px;color:#999">No pending approvals</td></tr>'
-            : pendingList.map(a => `<tr>
-                <td><strong>${a.attendantName}</strong><br><small style="color:#888">${a.attendantUsername}</small></td>
-                <td>${new Date(a.loginTime).toLocaleString()}</td>
-                <td style="display:flex;gap:8px">
-                    <button class="btn btn-success" style="padding:5px 14px;font-size:12px" onclick="doApprove(${a.id})">Approve</button>
-                    <button class="btn btn-danger"  style="padding:5px 14px;font-size:12px" onclick="doReject(${a.id})">Reject</button>
-                </td>
-            </tr>`).join('');
+            ? '<tr><td colspan="5" style="text-align:center;padding:20px;color:#999">No pending approvals</td></tr>'
+            : pendingList.map(a => {
+                const type = a.status === 'CLOCK_IN_PENDING'
+                    ? '<span class="badge badge-attendant">Clock In</span>'
+                    : '<span class="badge badge-manager">Clock Out</span>';
+                return `<tr>
+                    <td><strong>${a.attendantName}</strong><br><small style="color:#888">${a.attendantUsername}</small></td>
+                    <td>${type}</td>
+                    <td>${fmtTime(a.clockIn)}</td>
+                    <td>${fmtTime(a.clockOut)}</td>
+                    <td style="display:flex;gap:8px;flex-wrap:wrap">
+                        <button class="btn btn-success" style="padding:5px 14px;font-size:12px" onclick="doApprove(${a.id})">Approve</button>
+                        <button class="btn btn-danger"  style="padding:5px 14px;font-size:12px" onclick="doReject(${a.id})">Reject</button>
+                    </td>
+                </tr>`;
+            }).join('');
     }
 
     async function loadAttendanceHistory() {
@@ -480,10 +521,12 @@
                 ? '<tr><td colspan="5" style="text-align:center;padding:20px;color:#999">No records</td></tr>'
                 : list.map(a => `<tr>
                     <td>${a.attendantName}<br><small style="color:#888">${a.attendantUsername}</small></td>
-                    <td>${new Date(a.loginTime).toLocaleString()}</td>
+                    <td>${fmtTime(a.clockIn)}</td>
+                    <td>${fmtTime(a.clockOut)}</td>
                     <td>${statusBadge(a.status)}</td>
                     <td>${a.approvedByUsername || '-'}</td>
-                    <td>${a.approvedAt ? new Date(a.approvedAt).toLocaleString() : '-'}</td>
+                    <td>${fmtTime(a.approvedAt)}</td>
+                    <td style="color:#c0392b;font-size:13px">${a.rejectionNote || ''}</td>
                 </tr>`).join('');
         } catch(e) { console.error(e); }
     }
@@ -497,10 +540,28 @@
         } catch(e) { alert(e.message); }
     }
 
-    async function doReject(id) {
-        if (!confirm('Reject this login?')) return;
+    let rejectTargetId = null;
+
+    function doReject(id) {
+        rejectTargetId = id;
+        document.getElementById('rejectNoteInput').value = '';
+        document.getElementById('rejectNoteError').style.display = 'none';
+        document.getElementById('rejectModal').classList.add('active');
+    }
+
+    function closeRejectModal() {
+        document.getElementById('rejectModal').classList.remove('active');
+        rejectTargetId = null;
+    }
+
+    async function submitReject() {
+        const note = document.getElementById('rejectNoteInput').value.trim();
+        const errEl = document.getElementById('rejectNoteError');
+        if (!note) { errEl.style.display = 'block'; return; }
+        errEl.style.display = 'none';
         try {
-            await rejectAttendance(id);
+            await rejectAttendance(rejectTargetId, note);
+            closeRejectModal();
             pendingList = await getPendingAttendance();
             updatePendingBadge();
             renderPending();

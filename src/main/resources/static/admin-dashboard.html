@@ -286,7 +286,7 @@
             <form id="createUserForm" onsubmit="return false">
                 <div class="form-group">
                     <label>Role *</label>
-                    <select id="cu-role">
+                    <select id="cu-role" onchange="onRoleChange(this.value)">
                         <option value="">Select Role</option>
                         <option value="MANAGER">Manager</option>
                         <option value="CLERK">Clerk</option>
@@ -294,11 +294,12 @@
                     </select>
                     <span class="field-error" id="cu-role-error"></span>
                 </div>
-                <div class="form-group">
-                    <label>Branch *</label>
+                <div class="form-group" id="branchGroup">
+                    <label id="branchLabel">Branch *</label>
                     <select id="cu-branch">
                         <option value="">Select Branch</option>
                     </select>
+                    <small id="branchHint" style="color:#888;display:none">Optional — clerks work across all branches.</small>
                     <span class="field-error" id="cu-branch-error"></span>
                 </div>
                 <div class="form-group">
@@ -498,6 +499,18 @@
     // Modal
     const ALL_FIELDS = ['cu-role', 'cu-branch', 'cu-fullName', 'cu-username', 'cu-password', 'cu-email'];
 
+    function onRoleChange(role) {
+        const labelEl = document.getElementById('branchLabel');
+        const hintEl  = document.getElementById('branchHint');
+        if (role === 'CLERK') {
+            labelEl.textContent = 'Branch (optional)';
+            hintEl.style.display = 'block';
+        } else {
+            labelEl.textContent = 'Branch *';
+            hintEl.style.display = 'none';
+        }
+    }
+
     function openCreateModal(presetRole = '') {
         document.getElementById('createUserModal').classList.add('active');
         document.getElementById('createUserForm').reset();
@@ -506,6 +519,9 @@
         clearAllFields(ALL_FIELDS);
         if (presetRole) {
             document.getElementById('cu-role').value = presetRole;
+            onRoleChange(presetRole);
+        } else {
+            onRoleChange('');
         }
     }
 
@@ -523,8 +539,9 @@
         const roleVal   = document.getElementById('cu-role').value;
         const branchVal = document.getElementById('cu-branch').value;
 
-        // Branch always required for all roles
-        if (!validateUserForm(true)) return;
+        // Branch optional for CLERK, required for all other roles
+        const requireBranch = roleVal !== 'CLERK';
+        if (!validateUserForm(requireBranch)) return;
 
         const payload = {
             role:     roleVal,

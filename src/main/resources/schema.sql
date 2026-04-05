@@ -125,9 +125,10 @@ CREATE TABLE IF NOT EXISTS attendance (
     id           BIGINT AUTO_INCREMENT PRIMARY KEY,
     attendant_id BIGINT NOT NULL,
     branch_id    BIGINT NOT NULL,
-    login_time   DATETIME NOT NULL,
-    logout_time  DATETIME,
-    status       ENUM('PENDING', 'APPROVED', 'REJECTED') NOT NULL DEFAULT 'PENDING',
+    clock_in     DATETIME NOT NULL,
+    clock_out    DATETIME,
+    status       ENUM('CLOCK_IN_PENDING','CLOCKED_IN','CLOCK_OUT_PENDING','COMPLETED','REJECTED')
+                 NOT NULL DEFAULT 'CLOCK_IN_PENDING',
     approved_by  BIGINT,
     approved_at  DATETIME,
     created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -135,6 +136,13 @@ CREATE TABLE IF NOT EXISTS attendance (
     CONSTRAINT fk_att_branch    FOREIGN KEY (branch_id)    REFERENCES branches(id),
     CONSTRAINT fk_att_approver  FOREIGN KEY (approved_by)  REFERENCES users(id)
 );
+
+-- If table already exists with old enum, run this:
+-- ALTER TABLE attendance MODIFY COLUMN status
+--   ENUM('CLOCK_IN_PENDING','CLOCKED_IN','CLOCK_OUT_PENDING','COMPLETED','REJECTED')
+--   NOT NULL DEFAULT 'CLOCK_IN_PENDING';
+-- ALTER TABLE attendance CHANGE COLUMN login_time clock_in DATETIME NOT NULL;
+-- ALTER TABLE attendance CHANGE COLUMN logout_time clock_out DATETIME;
 
 -- Default admin user  (password: Admin@123)
 INSERT IGNORE INTO users (username, password, full_name, email, role, active)

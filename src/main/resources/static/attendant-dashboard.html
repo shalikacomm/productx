@@ -16,11 +16,30 @@
         }
         .status-icon { font-size: 48px; margin-bottom: 12px; }
         .status-label { font-size: 13px; color: #888; margin-bottom: 6px; }
-        .status-value { font-size: 22px; font-weight: 700; }
-        .status-pending  { color: #e67e22; }
-        .status-approved { color: #27ae60; }
-        .status-rejected { color: #c0392b; }
-        .attendance-time { font-size: 14px; color: #555; margin-top: 8px; }
+        .status-value { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+        .status-pending   { color: #e67e22; }
+        .status-clocked-in { color: #27ae60; }
+        .status-rejected  { color: #c0392b; }
+        .status-completed { color: #2980b9; }
+        .attendance-time { font-size: 14px; color: #555; margin-top: 4px; }
+        .status-hint { margin-top: 8px; font-size: 13px; color: #aaa; }
+
+        .clock-btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 36px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .clock-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-clock-in  { background: #27ae60; color: #fff; }
+        .btn-clock-out { background: #e67e22; color: #fff; }
+        .btn-clock-in:hover:not(:disabled)  { background: #219150; }
+        .btn-clock-out:hover:not(:disabled) { background: #cf6d17; }
     </style>
 </head>
 <body>
@@ -62,25 +81,32 @@
         <div class="section-page active" id="section-overview">
             <div class="page-header"><h2>Dashboard</h2></div>
 
-            <!-- Login Status Card -->
+            <!-- Session Status Card -->
             <div class="status-card">
                 <div class="status-icon" id="statusIcon">&#9203;</div>
-                <div class="status-label">Today's Login Status</div>
+                <div class="status-label">Today's Attendance Status</div>
                 <div class="status-value" id="statusValue">-</div>
-                <div class="attendance-time" id="loginTimeDisplay"></div>
-                <div style="margin-top:16px;font-size:13px;color:#aaa" id="statusHint"></div>
+                <div class="attendance-time" id="clockInDisplay"></div>
+                <div class="attendance-time" id="clockOutDisplay"></div>
+                <div class="status-hint" id="statusHint"></div>
+                <div>
+                    <button id="btnClockIn"  class="clock-btn btn-clock-in"  onclick="doClockIn()"  style="display:none">&#9654; Clock In</button>
+                    <button id="btnClockOut" class="clock-btn btn-clock-out" onclick="doClockOut()" style="display:none">&#9632; Clock Out</button>
+                </div>
             </div>
 
             <!-- Recent Attendance -->
             <div class="card">
                 <div class="card-header"><h3>Recent Attendance</h3></div>
                 <div class="card-body">
+                    <div style="overflow-x:auto">
                     <table>
-                        <thead><tr><th>Login Time</th><th>Status</th><th>Approved By</th></tr></thead>
+                        <thead><tr><th>Clock In</th><th>Clock Out</th><th>Status</th><th>Approved By</th></tr></thead>
                         <tbody id="recentBody">
-                            <tr><td colspan="3" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
+                            <tr><td colspan="4" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
                         </tbody>
                     </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -90,12 +116,14 @@
             <div class="page-header"><h2>My Attendance History</h2></div>
             <div class="card">
                 <div class="card-body">
+                    <div style="overflow-x:auto">
                     <table>
-                        <thead><tr><th>Login Time</th><th>Status</th><th>Approved By</th><th>Approved At</th></tr></thead>
+                        <thead><tr><th>Clock In</th><th>Clock Out</th><th>Status</th><th>Approved By</th><th>Approved At</th><th>Note</th></tr></thead>
                         <tbody id="historyBody">
-                            <tr><td colspan="4" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
+                            <tr><td colspan="6" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
                         </tbody>
                     </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -111,59 +139,135 @@
     document.getElementById('topbarUser').textContent  = currentUser.fullName;
     document.getElementById('branchLabel').textContent = currentUser.branchName || 'Attendant Panel';
 
+    function fmtTime(dt) {
+        return dt ? new Date(dt).toLocaleString() : '-';
+    }
+
     function statusBadge(status) {
-        const map = { PENDING: 'badge-attendant', APPROVED: 'badge-clerk', REJECTED: 'badge-admin' };
-        return `<span class="badge ${map[status] || ''}">${status}</span>`;
-    }
-
-    function renderStatusCard(status, loginTime) {
-        const icons = { PENDING: '&#9203;', APPROVED: '&#9989;', REJECTED: '&#10060;' };
-        const classes = { PENDING: 'status-pending', APPROVED: 'status-approved', REJECTED: 'status-rejected' };
-        const hints = {
-            PENDING:  'Waiting for your branch manager to approve your login.',
-            APPROVED: 'Your login has been approved. Have a great shift!',
-            REJECTED: 'Your login was rejected. Please contact your manager.'
+        const colors = {
+            CLOCK_IN_PENDING:  'badge-attendant',
+            CLOCKED_IN:        'badge-clerk',
+            CLOCK_OUT_PENDING: 'badge-attendant',
+            COMPLETED:         'badge-manager',
+            REJECTED:          'badge-admin'
         };
-        document.getElementById('statusIcon').innerHTML  = icons[status] || '&#9203;';
-        document.getElementById('statusValue').textContent = status;
-        document.getElementById('statusValue').className   = 'status-value ' + (classes[status] || '');
-        document.getElementById('loginTimeDisplay').textContent = loginTime
-            ? 'Logged in at: ' + new Date(loginTime).toLocaleString() : '';
-        document.getElementById('statusHint').textContent = hints[status] || '';
+        return `<span class="badge ${colors[status] || ''}">${status.replace(/_/g,' ')}</span>`;
     }
 
-    function renderAttendanceRows(list, tbodyId, cols) {
-        document.getElementById(tbodyId).innerHTML = list.length === 0
-            ? `<tr><td colspan="${cols}" style="text-align:center;padding:20px;color:#999">No records</td></tr>`
-            : list.map(a => `<tr>
-                <td>${new Date(a.loginTime).toLocaleString()}</td>
-                <td>${statusBadge(a.status)}</td>
-                <td>${a.approvedByUsername || '-'}</td>
-                ${cols === 4 ? `<td>${a.approvedAt ? new Date(a.approvedAt).toLocaleString() : '-'}</td>` : ''}
-            </tr>`).join('');
+    function renderStatusCard(session) {
+        const iconEl  = document.getElementById('statusIcon');
+        const valueEl = document.getElementById('statusValue');
+        const hintEl  = document.getElementById('statusHint');
+        const ciEl    = document.getElementById('clockInDisplay');
+        const coEl    = document.getElementById('clockOutDisplay');
+        const btnIn   = document.getElementById('btnClockIn');
+        const btnOut  = document.getElementById('btnClockOut');
+
+        // Hide both buttons initially
+        btnIn.style.display  = 'none';
+        btnOut.style.display = 'none';
+        valueEl.className = 'status-value';
+
+        if (!session) {
+            iconEl.innerHTML = '&#9675;';
+            valueEl.textContent = 'Not Clocked In';
+            hintEl.textContent  = 'Click Clock In when you start your shift.';
+            ciEl.textContent = '';
+            coEl.textContent = '';
+            btnIn.style.display = 'inline-block';
+            return;
+        }
+
+        ciEl.textContent = session.clockIn  ? 'Clock In:  ' + fmtTime(session.clockIn)  : '';
+        coEl.textContent = session.clockOut ? 'Clock Out: ' + fmtTime(session.clockOut) : '';
+
+        switch (session.status) {
+            case 'CLOCK_IN_PENDING':
+                iconEl.innerHTML = '&#9203;';
+                valueEl.textContent = 'Awaiting Clock-In Approval';
+                valueEl.classList.add('status-pending');
+                hintEl.textContent  = 'Waiting for your branch manager to approve your clock-in.';
+                break;
+            case 'CLOCKED_IN':
+                iconEl.innerHTML = '&#9989;';
+                valueEl.textContent = 'Clocked In';
+                valueEl.classList.add('status-clocked-in');
+                hintEl.textContent  = 'You are clocked in. Click Clock Out when your shift ends.';
+                btnOut.style.display = 'inline-block';
+                break;
+            case 'CLOCK_OUT_PENDING':
+                iconEl.innerHTML = '&#9203;';
+                valueEl.textContent = 'Awaiting Clock-Out Approval';
+                valueEl.classList.add('status-pending');
+                hintEl.textContent  = 'Waiting for your branch manager to approve your clock-out.';
+                break;
+            case 'COMPLETED':
+                iconEl.innerHTML = '&#127881;';
+                valueEl.textContent = 'Shift Completed';
+                valueEl.classList.add('status-completed');
+                hintEl.textContent  = 'Your shift has been recorded and completed.';
+                break;
+            case 'REJECTED':
+                iconEl.innerHTML = '&#10060;';
+                valueEl.textContent = 'Rejected';
+                valueEl.classList.add('status-rejected');
+                hintEl.innerHTML = 'Your request was rejected.'
+                    + (session.rejectionNote ? ` <br><strong>Manager note:</strong> ${session.rejectionNote}` : ' Please contact your manager.');
+                btnIn.style.display = 'inline-block';
+                break;
+        }
     }
 
-    async function init() {
+    function renderRows(list, tbodyId, cols) {
+        const tbody = document.getElementById(tbodyId);
+        if (!list || list.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="${cols}" style="text-align:center;padding:20px;color:#999">No records</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = list.map(a => `<tr>
+            <td>${fmtTime(a.clockIn)}</td>
+            <td>${fmtTime(a.clockOut)}</td>
+            <td>${statusBadge(a.status)}</td>
+            <td>${a.approvedByUsername || '-'}</td>
+            ${cols >= 5 ? `<td>${a.approvedAt ? fmtTime(a.approvedAt) : '-'}</td>` : ''}
+            ${cols === 6 ? `<td style="color:#c0392b;font-size:13px">${a.rejectionNote || ''}</td>` : ''}
+        </tr>`).join('');
+    }
+
+    let currentSession = null;
+
+    async function loadData() {
         try {
-            const list = await getMyAttendance();
-
-            // Show current session status from login response if available
-            const status    = currentUser.attendanceStatus || (list[0]?.status);
-            const loginTime = list[0]?.loginTime;
-            if (status) renderStatusCard(status, loginTime);
-
-            renderAttendanceRows(list.slice(0, 5), 'recentBody', 3);
-            renderAttendanceRows(list, 'historyBody', 4);
-
-            // Poll every 30s to reflect manager approval automatically
-            setInterval(async () => {
-                const updated = await getMyAttendance();
-                if (updated[0]?.status !== list[0]?.status) {
-                    renderStatusCard(updated[0].status, updated[0].loginTime);
-                    renderAttendanceRows(updated.slice(0, 5), 'recentBody', 3);
-                }
-            }, 30000);
+            const [session, list] = await Promise.all([getMyActiveSession(), getMyAttendance()]);
+            currentSession = session;
+            renderStatusCard(session);
+            renderRows(list.slice(0, 5), 'recentBody', 4);
+            renderRows(list, 'historyBody', 6);
         } catch(e) { console.error(e); }
+    }
+
+    async function doClockIn() {
+        const btn = document.getElementById('btnClockIn');
+        btn.disabled = true;
+        try {
+            await clockIn();
+            await loadData();
+        } catch(e) {
+            alert(e.message);
+            btn.disabled = false;
+        }
+    }
+
+    async function doClockOut() {
+        const btn = document.getElementById('btnClockOut');
+        btn.disabled = true;
+        try {
+            await clockOut();
+            await loadData();
+        } catch(e) {
+            alert(e.message);
+            btn.disabled = false;
+        }
     }
 
     function showSection(name, el) {
@@ -172,6 +276,7 @@
         document.getElementById('section-' + name).classList.add('active');
         if (el) el.classList.add('active');
         closeSidebar();
+        if (name === 'history') loadData();
     }
 
     function toggleSidebar() {
@@ -183,7 +288,9 @@
         document.getElementById('sidebarOverlay').classList.remove('active');
     }
 
-    init();
+    // Initial load + poll every 30s
+    loadData();
+    setInterval(loadData, 30000);
 </script>
 </body>
 </html>

@@ -17,7 +17,7 @@ public class BranchController {
     private final BranchService branchService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'CLERK')")
     public ResponseEntity<List<BranchResponse>> getBranches() {
         return ResponseEntity.ok(branchService.getAllActiveBranches());
     }

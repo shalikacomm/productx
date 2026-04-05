@@ -9,6 +9,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/attendance")
@@ -17,9 +18,9 @@ public class AttendanceController {
 
     private final AttendanceService attendanceService;
 
-    /** Admin: all attendance records */
+    /** Admin/Clerk: all attendance records */
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK')")
     public ResponseEntity<List<AttendanceResponse>> getAll() {
         return ResponseEntity.ok(attendanceService.getAll());
     }
@@ -49,8 +50,34 @@ public class AttendanceController {
     /** Manager: reject */
     @PutMapping("/{id}/reject")
     @PreAuthorize("hasRole('MANAGER')")
-    public ResponseEntity<AttendanceResponse> reject(@PathVariable Long id, Authentication auth) {
-        return ResponseEntity.ok(attendanceService.reject(id, auth.getName()));
+    public ResponseEntity<AttendanceResponse> reject(
+            @PathVariable Long id,
+            @RequestBody(required = false) Map<String, String> body,
+            Authentication auth) {
+        String note = body != null ? body.getOrDefault("note", "") : "";
+        return ResponseEntity.ok(attendanceService.reject(id, auth.getName(), note));
+    }
+
+    /** Attendant: clock in */
+    @PostMapping("/clock-in")
+    @PreAuthorize("hasRole('ATTENDANT')")
+    public ResponseEntity<AttendanceResponse> clockIn(Authentication auth) {
+        return ResponseEntity.ok(attendanceService.clockIn(auth.getName()));
+    }
+
+    /** Attendant: clock out */
+    @PutMapping("/clock-out")
+    @PreAuthorize("hasRole('ATTENDANT')")
+    public ResponseEntity<AttendanceResponse> clockOut(Authentication auth) {
+        return ResponseEntity.ok(attendanceService.clockOut(auth.getName()));
+    }
+
+    /** Attendant: current active session */
+    @GetMapping("/my/active")
+    @PreAuthorize("hasRole('ATTENDANT')")
+    public ResponseEntity<AttendanceResponse> getMyActiveSession(Authentication auth) {
+        AttendanceResponse res = attendanceService.getMyActiveSession(auth.getName());
+        return res != null ? ResponseEntity.ok(res) : ResponseEntity.noContent().build();
     }
 
     /** Attendant: their own attendance history */

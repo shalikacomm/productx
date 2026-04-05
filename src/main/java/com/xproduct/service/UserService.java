@@ -40,10 +40,12 @@ public class UserService {
         }
 
         Branch branch = null;
-        if (request.getRole() != Role.ADMIN) {
+        if (request.getRole() != Role.ADMIN && request.getRole() != Role.CLERK) {
             if (request.getBranchId() == null) {
                 throw new ApiException("Branch is required for " + request.getRole(), HttpStatus.BAD_REQUEST);
             }
+        }
+        if (request.getBranchId() != null) {
             branch = branchRepository.findById(request.getBranchId())
                     .orElseThrow(() -> new ApiException("Branch not found", HttpStatus.NOT_FOUND));
         }

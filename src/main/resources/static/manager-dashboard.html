@@ -137,14 +137,70 @@
                 <h2>Daily Sales</h2>
                 <button class="btn btn-primary" onclick="openSaleModal()">+ Record Sale</button>
             </div>
-            <div class="card">
+            <div class="card" style="margin-bottom:20px">
                 <div class="card-body">
                     <table>
                         <thead>
                             <tr><th>Date</th><th>Item Type</th><th>Qty Sold</th><th>Price/Unit</th><th>Total (LKR)</th><th>Recorded By</th></tr>
                         </thead>
                         <tbody id="salesBody">
-                            <tr><td colspan="5" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
+                            <tr><td colspan="6" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Payment Summary Entry -->
+            <div class="card" style="margin-bottom:20px">
+                <div class="card-header">
+                    <h3>Daily Payment Summary</h3>
+                </div>
+                <div class="card-body" style="padding:20px">
+                    <div class="alert alert-error"   id="psError"></div>
+                    <div class="alert alert-success" id="psSuccess"></div>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:16px">
+                        <div class="form-group" style="margin:0">
+                            <label>Date *</label>
+                            <input type="date" id="ps-date">
+                        </div>
+                        <div class="form-group" style="margin:0">
+                            <label>Online (LKR)</label>
+                            <input type="number" id="ps-online" min="0" step="0.01" placeholder="0.00" oninput="updatePsTotal()">
+                        </div>
+                        <div class="form-group" style="margin:0">
+                            <label>Visa (LKR)</label>
+                            <input type="number" id="ps-visa" min="0" step="0.01" placeholder="0.00" oninput="updatePsTotal()">
+                        </div>
+                        <div class="form-group" style="margin:0">
+                            <label>Amex (LKR)</label>
+                            <input type="number" id="ps-amex" min="0" step="0.01" placeholder="0.00" oninput="updatePsTotal()">
+                        </div>
+                        <div class="form-group" style="margin:0">
+                            <label>Touch (LKR)</label>
+                            <input type="number" id="ps-touch" min="0" step="0.01" placeholder="0.00" oninput="updatePsTotal()">
+                        </div>
+                        <div class="form-group" style="margin:0">
+                            <label>Cash (LKR)</label>
+                            <input type="number" id="ps-cash" min="0" step="0.01" placeholder="0.00" oninput="updatePsTotal()">
+                        </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+                        <button class="btn btn-primary" onclick="savePaymentSummary()">&#128190; Save Payment Summary</button>
+                        <span id="ps-total-display" style="font-size:15px;font-weight:700;color:#FF7A00"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Summary History -->
+            <div class="card">
+                <div class="card-header"><h3>Payment Summary History</h3></div>
+                <div class="card-body" style="overflow-x:auto">
+                    <table>
+                        <thead>
+                            <tr><th>Date</th><th>Online</th><th>Visa</th><th>Amex</th><th>Touch</th><th>Cash</th><th>Total</th><th>Recorded By</th></tr>
+                        </thead>
+                        <tbody id="psSummaryBody">
+                            <tr><td colspan="8" style="text-align:center;padding:20px;color:#999">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -402,6 +458,7 @@
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('grn-date').value  = today;
         document.getElementById('sale-date').value = today;
+        document.getElementById('ps-date').value   = today;
     }
 
     function renderOverview() {
@@ -608,7 +665,73 @@
         if (el) el.classList.add('active');
         if (name === 'approvals')   renderPending();
         if (name === 'attendance')  loadAttendanceHistory();
+        if (name === 'sales')       loadPaymentSummaries();
         closeSidebar();
+    }
+
+    // ---- Payment Summary ----
+
+    function updatePsTotal() {
+        const vals = ['ps-online','ps-visa','ps-amex','ps-touch','ps-cash']
+            .map(id => parseFloat(document.getElementById(id).value) || 0);
+        const total = vals.reduce((a, b) => a + b, 0);
+        document.getElementById('ps-total-display').textContent =
+            total > 0 ? 'Total: LKR ' + total.toLocaleString('en-LK', { minimumFractionDigits: 2 }) : '';
+    }
+
+    async function loadPaymentSummaries() {
+        try {
+            const list = await getMyBranchPaymentSummary();
+            renderPaymentSummaryTable(list);
+        } catch(e) { console.error(e); }
+    }
+
+    function renderPaymentSummaryTable(list) {
+        const fmt = v => 'LKR ' + Number(v || 0).toLocaleString('en-LK', { minimumFractionDigits: 2 });
+        document.getElementById('psSummaryBody').innerHTML = !list || list.length === 0
+            ? '<tr><td colspan="8" style="text-align:center;padding:20px;color:#999">No payment summaries recorded</td></tr>'
+            : list.map(s => `<tr>
+                <td><strong>${s.summaryDate}</strong></td>
+                <td>${fmt(s.onlineAmount)}</td>
+                <td>${fmt(s.visaAmount)}</td>
+                <td>${fmt(s.amexAmount)}</td>
+                <td>${fmt(s.touchAmount)}</td>
+                <td>${fmt(s.cashAmount)}</td>
+                <td><strong>${fmt(s.totalAmount)}</strong></td>
+                <td>${s.recordedByUsername}</td>
+            </tr>`).join('');
+    }
+
+    async function savePaymentSummary() {
+        const errEl = document.getElementById('psError');
+        const sucEl = document.getElementById('psSuccess');
+        errEl.classList.remove('show');
+        sucEl.classList.remove('show');
+
+        const date = document.getElementById('ps-date').value;
+        if (!date) { errEl.textContent = 'Please select a date.'; errEl.classList.add('show'); return; }
+
+        const payload = {
+            summaryDate:  date,
+            onlineAmount: parseFloat(document.getElementById('ps-online').value) || 0,
+            visaAmount:   parseFloat(document.getElementById('ps-visa').value)   || 0,
+            amexAmount:   parseFloat(document.getElementById('ps-amex').value)   || 0,
+            touchAmount:  parseFloat(document.getElementById('ps-touch').value)  || 0,
+            cashAmount:   parseFloat(document.getElementById('ps-cash').value)   || 0
+        };
+
+        try {
+            await recordPaymentSummary(payload);
+            sucEl.textContent = 'Payment summary saved successfully.';
+            sucEl.classList.add('show');
+            // Reset amount fields, keep date
+            ['ps-online','ps-visa','ps-amex','ps-touch','ps-cash'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('ps-total-display').textContent = '';
+            await loadPaymentSummaries();
+        } catch(e) {
+            errEl.textContent = e.message;
+            errEl.classList.add('show');
+        }
     }
 
     // ---- GRN Modal ----

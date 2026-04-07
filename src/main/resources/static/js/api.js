@@ -182,6 +182,23 @@ async function searchAttendance(params) {
     return apiFetch('/attendance/search?' + qs);
 }
 
+// Payment Summary
+async function recordPaymentSummary(payload) {
+    return apiFetch('/payment-summary', { method: 'POST', body: JSON.stringify(payload) });
+}
+
+async function getMyBranchPaymentSummary() {
+    return apiFetch('/payment-summary/branch');
+}
+
+async function getAllPaymentSummaries() {
+    return apiFetch('/payment-summary');
+}
+
+async function getPaymentSummaryByBranch(branchId) {
+    return apiFetch('/payment-summary/branch/' + branchId);
+}
+
 // Reports
 async function getReport(params) {
     const qs = new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([,v]) => v != null && v !== ''))).toString();

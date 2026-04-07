@@ -136,7 +136,7 @@
                     <button class="btn btn-primary" onclick="openClerkSaleModal()">+ Record Sale</button>
                 </div>
             </div>
-            <div class="card">
+            <div class="card" style="margin-bottom:20px">
                 <div class="card-body">
                     <div style="overflow-x:auto">
                     <table>
@@ -148,6 +148,26 @@
                         </tbody>
                     </table>
                     </div>
+                </div>
+            </div>
+
+            <!-- Payment Summary (read-only) -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>Payment Summaries</h3>
+                    <select id="clerkPsBranchFilter" onchange="loadClerkPaymentSummaries()" style="padding:8px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:13px">
+                        <option value="">Select Branch</option>
+                    </select>
+                </div>
+                <div class="card-body" style="overflow-x:auto">
+                    <table>
+                        <thead>
+                            <tr><th>Date</th><th>Online</th><th>Visa</th><th>Amex</th><th>Touch</th><th>Cash</th><th>Total</th><th>Recorded By</th></tr>
+                        </thead>
+                        <tbody id="clerkPsBody">
+                            <tr><td colspan="8" style="text-align:center;padding:20px;color:#999">Select a branch to view payment summaries</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -601,6 +621,28 @@
             branches.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
         document.getElementById('salesBranchFilter').innerHTML = opts;
         document.getElementById('csale-branch').innerHTML = opts;
+        document.getElementById('clerkPsBranchFilter').innerHTML = opts;
+    }
+
+    async function loadClerkPaymentSummaries() {
+        const branchId = document.getElementById('clerkPsBranchFilter').value;
+        if (!branchId) return;
+        const fmt = v => 'LKR ' + Number(v || 0).toLocaleString('en-LK', { minimumFractionDigits: 2 });
+        try {
+            const list = await getPaymentSummaryByBranch(branchId);
+            document.getElementById('clerkPsBody').innerHTML = !list || list.length === 0
+                ? '<tr><td colspan="8" style="text-align:center;padding:20px;color:#999">No payment summaries for this branch</td></tr>'
+                : list.map(s => `<tr>
+                    <td><strong>${s.summaryDate}</strong></td>
+                    <td>${fmt(s.onlineAmount)}</td>
+                    <td>${fmt(s.visaAmount)}</td>
+                    <td>${fmt(s.amexAmount)}</td>
+                    <td>${fmt(s.touchAmount)}</td>
+                    <td>${fmt(s.cashAmount)}</td>
+                    <td><strong>${fmt(s.totalAmount)}</strong></td>
+                    <td>${s.recordedByUsername}</td>
+                </tr>`).join('');
+        } catch(e) { console.error(e); }
     }
 
     async function loadClerkSales() {

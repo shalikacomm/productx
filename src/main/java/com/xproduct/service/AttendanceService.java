@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -140,6 +141,14 @@ public class AttendanceService {
     /** Admin: all records */
     public List<AttendanceResponse> getAll() {
         return attendanceRepository.findAllByOrderByClockInDesc()
+                .stream().map(AttendanceResponse::from).collect(Collectors.toList());
+    }
+
+    /** Admin/Clerk: search by date range with optional filters */
+    public List<AttendanceResponse> search(String fromStr, String toStr, Long attendantId, Long branchId) {
+        LocalDateTime from = LocalDate.parse(fromStr).atStartOfDay();
+        LocalDateTime to   = LocalDate.parse(toStr).atTime(23, 59, 59);
+        return attendanceRepository.search(from, to, attendantId, branchId)
                 .stream().map(AttendanceResponse::from).collect(Collectors.toList());
     }
 

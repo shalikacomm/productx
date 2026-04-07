@@ -175,6 +175,13 @@ async function getMyAttendance() {
     return apiFetch('/attendance/my');
 }
 
+async function searchAttendance(params) {
+    const qs = new URLSearchParams(Object.fromEntries(
+        Object.entries(params).filter(([,v]) => v != null && v !== '')
+    )).toString();
+    return apiFetch('/attendance/search?' + qs);
+}
+
 // Reports
 async function getReport(params) {
     const qs = new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([,v]) => v != null && v !== ''))).toString();

@@ -25,6 +25,17 @@ public class AttendanceController {
         return ResponseEntity.ok(attendanceService.getAll());
     }
 
+    /** Admin/Clerk: search attendance by date range */
+    @GetMapping("/search")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK')")
+    public ResponseEntity<List<AttendanceResponse>> search(
+            @RequestParam String from,
+            @RequestParam String to,
+            @RequestParam(required = false) Long attendantId,
+            @RequestParam(required = false) Long branchId) {
+        return ResponseEntity.ok(attendanceService.search(from, to, attendantId, branchId));
+    }
+
     /** Manager: pending approvals for their branch */
     @GetMapping("/pending")
     @PreAuthorize("hasRole('MANAGER')")

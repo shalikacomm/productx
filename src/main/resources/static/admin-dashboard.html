@@ -55,6 +55,9 @@
             <a onclick="showSection('attendants', this)">
                 <span class="icon">&#128110;</span> Attendants
             </a>
+            <a onclick="showSection('attendance', this)">
+                <span class="icon">&#128197;</span> Attendance
+            </a>
         </nav>
         <div class="user-info">
             <div class="name" id="sidebarName">-</div>
@@ -378,6 +381,66 @@
             </div>
         </div>
 
+        <!-- Attendance Search -->
+        <div class="section-page" id="section-attendance">
+            <div class="page-header"><h2>Attendance Records</h2></div>
+
+            <!-- Filters -->
+            <div class="card" style="margin-bottom:20px">
+                <div class="card-body" style="padding:16px 20px">
+                    <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">
+                        <div class="form-group" style="margin:0;flex:1;min-width:130px">
+                            <label>From</label>
+                            <input type="date" id="att-from">
+                        </div>
+                        <div class="form-group" style="margin:0;flex:1;min-width:130px">
+                            <label>To</label>
+                            <input type="date" id="att-to">
+                        </div>
+                        <div class="form-group" style="margin:0;flex:1;min-width:150px">
+                            <label>Branch</label>
+                            <select id="att-branch" onchange="onAttBranchChange()">
+                                <option value="">All Branches</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin:0;flex:1;min-width:150px">
+                            <label>Attendant</label>
+                            <select id="att-attendant">
+                                <option value="">All Attendants</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" style="height:42px;white-space:nowrap" onclick="runAttendanceSearch()">&#128269; Search</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary by attendant (salary helper) -->
+            <div class="card" id="att-summary-card" style="display:none;margin-bottom:20px">
+                <div class="card-header"><h3>Summary by Attendant</h3></div>
+                <div class="card-body" style="overflow-x:auto">
+                    <table>
+                        <thead><tr><th>Attendant</th><th>Branch</th><th>Completed Shifts</th><th>Total Hours Worked</th></tr></thead>
+                        <tbody id="att-summary-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Detail records -->
+            <div class="card">
+                <div class="card-header"><h3 id="att-detail-title">Detailed Records</h3></div>
+                <div class="card-body" style="overflow-x:auto">
+                    <table>
+                        <thead>
+                            <tr><th>Attendant</th><th>Branch</th><th>Date</th><th>Clock In</th><th>Clock Out</th><th>Duration</th><th>Status</th></tr>
+                        </thead>
+                        <tbody id="att-detail-body">
+                            <tr><td colspan="7" style="text-align:center;padding:28px;color:#aaa">Select a date range and click Search</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
     </main>
 </div>
 
@@ -621,7 +684,139 @@
         if (name === 'stock')      renderStockTable();
         if (name === 'grn')        loadGrns();
         if (name === 'sales')      loadSales();
+        if (name === 'attendance') initAttendanceSearch();
         closeSidebar();
+    }
+
+    // ---- Attendance Search ----
+
+    let allAttendants = [];
+    let attSearchInitialized = false;
+
+    async function initAttendanceSearch() {
+        // Set default date range: first of current month → today
+        const today = new Date();
+        const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const fmt = d => d.toISOString().split('T')[0];
+        document.getElementById('att-from').value = fmt(firstOfMonth);
+        document.getElementById('att-to').value   = fmt(today);
+
+        if (!attSearchInitialized) {
+            // Populate branch filter
+            document.getElementById('att-branch').innerHTML =
+                '<option value="">All Branches</option>' +
+                branches.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+
+            // Load attendants
+            try {
+                allAttendants = await getUsersByRole('ATTENDANT');
+            } catch(e) { allAttendants = []; }
+
+            populateAttendantDropdown('');
+            attSearchInitialized = true;
+        }
+
+        await runAttendanceSearch();
+    }
+
+    function populateAttendantDropdown(branchId) {
+        const list = branchId
+            ? allAttendants.filter(a => String(a.branchId) === String(branchId))
+            : allAttendants;
+        document.getElementById('att-attendant').innerHTML =
+            '<option value="">All Attendants</option>' +
+            list.map(a => `<option value="${a.id}">${a.fullName} (${a.branchName || '-'})</option>`).join('');
+    }
+
+    function onAttBranchChange() {
+        populateAttendantDropdown(document.getElementById('att-branch').value);
+    }
+
+    function calcDuration(clockIn, clockOut) {
+        if (!clockIn || !clockOut) return '-';
+        const ms = new Date(clockOut) - new Date(clockIn);
+        if (ms <= 0) return '-';
+        const h = Math.floor(ms / 3600000);
+        const m = Math.floor((ms % 3600000) / 60000);
+        return `${h}h ${m}m`;
+    }
+
+    function attStatusBadge(status) {
+        const map = {
+            CLOCK_IN_PENDING:  'badge-attendant',
+            CLOCKED_IN:        'badge-clerk',
+            CLOCK_OUT_PENDING: 'badge-attendant',
+            COMPLETED:         'badge-manager',
+            REJECTED:          'badge-admin'
+        };
+        return `<span class="badge ${map[status] || ''}">${status.replace(/_/g,' ')}</span>`;
+    }
+
+    function fmtDateOnly(dt) {
+        if (!dt) return '-';
+        return new Date(dt).toLocaleDateString('en-LK', { timeZone: 'Asia/Colombo', year: 'numeric', month: 'short', day: '2-digit' });
+    }
+
+    async function runAttendanceSearch() {
+        const from        = document.getElementById('att-from').value;
+        const to          = document.getElementById('att-to').value;
+        const branchId    = document.getElementById('att-branch').value    || null;
+        const attendantId = document.getElementById('att-attendant').value || null;
+
+        if (!from || !to) { alert('Please select a date range.'); return; }
+
+        const tbody = document.getElementById('att-detail-body');
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:#aaa">Loading...</td></tr>';
+        document.getElementById('att-summary-card').style.display = 'none';
+
+        try {
+            const records = await searchAttendance({ from, to, attendantId, branchId });
+
+            // Summary by attendant (completed shifts only)
+            const summaryMap = {};
+            records.forEach(a => {
+                if (a.status === 'COMPLETED' && a.clockIn && a.clockOut) {
+                    const key = a.attendantId;
+                    if (!summaryMap[key]) summaryMap[key] = { name: a.attendantName, branch: a.branchName || '-', shifts: 0, ms: 0 };
+                    summaryMap[key].shifts++;
+                    summaryMap[key].ms += new Date(a.clockOut) - new Date(a.clockIn);
+                }
+            });
+
+            const summaryList = Object.values(summaryMap);
+            if (summaryList.length > 0) {
+                document.getElementById('att-summary-card').style.display = '';
+                document.getElementById('att-summary-body').innerHTML = summaryList.map(s => {
+                    const h = Math.floor(s.ms / 3600000);
+                    const m = Math.floor((s.ms % 3600000) / 60000);
+                    return `<tr>
+                        <td><strong>${s.name}</strong></td>
+                        <td>${s.branch}</td>
+                        <td>${s.shifts}</td>
+                        <td><strong>${h}h ${m}m</strong></td>
+                    </tr>`;
+                }).join('');
+            }
+
+            // Detail table
+            document.getElementById('att-detail-title').textContent =
+                `Detailed Records (${records.length} found)`;
+
+            tbody.innerHTML = records.length === 0
+                ? '<tr><td colspan="7" style="text-align:center;padding:28px;color:#aaa">No records found for the selected range</td></tr>'
+                : records.map(a => `<tr>
+                    <td><strong>${a.attendantName}</strong><br><small style="color:#888">${a.attendantUsername}</small></td>
+                    <td>${a.branchName || '-'}</td>
+                    <td>${fmtDateOnly(a.clockIn)}</td>
+                    <td>${fmtTime(a.clockIn)}</td>
+                    <td>${fmtTime(a.clockOut)}</td>
+                    <td><strong>${calcDuration(a.clockIn, a.clockOut)}</strong></td>
+                    <td>${attStatusBadge(a.status)}</td>
+                </tr>`).join('');
+
+        } catch(e) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:20px;color:#e74c3c">${e.message}</td></tr>`;
+        }
     }
 
     // ---- Stock ----
